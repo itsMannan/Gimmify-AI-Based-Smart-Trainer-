@@ -8,6 +8,7 @@ export default function OnboardingPage() {
   const router = useRouter()
   const [formData, setFormData] = useState({
     gender: '' as 'Male' | 'Female' | '',
+    age: '',
     height: '',
     weight: '',
     workoutFrequency: '' as '3' | '4' | '6' | '',
@@ -21,7 +22,7 @@ export default function OnboardingPage() {
       router.push('/auth')
       return
     }
-    
+
     // Redirect if already completed onboarding
     if (hasCompletedOnboarding()) {
       router.push('/')
@@ -30,11 +31,11 @@ export default function OnboardingPage() {
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
-    
+
     if (!formData.gender) {
       newErrors.gender = 'Please select your gender'
     }
-    
+
     if (!formData.height) {
       newErrors.height = 'Height is required'
     } else {
@@ -43,7 +44,16 @@ export default function OnboardingPage() {
         newErrors.height = 'Please enter a valid height (50-250 cm)'
       }
     }
-    
+
+    if (!formData.age) {
+      newErrors.age = 'Age is required'
+    } else {
+      const ageNum = parseInt(formData.age)
+      if (isNaN(ageNum) || ageNum < 10 || ageNum > 100) {
+        newErrors.age = 'Please enter a valid age (10-100)'
+      }
+    }
+
     if (!formData.weight) {
       newErrors.weight = 'Weight is required'
     } else {
@@ -52,11 +62,11 @@ export default function OnboardingPage() {
         newErrors.weight = 'Please enter a valid weight (20-300 kg)'
       }
     }
-    
+
     if (!formData.workoutFrequency) {
       newErrors.workoutFrequency = 'Please select workout frequency'
     }
-    
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -67,13 +77,14 @@ export default function OnboardingPage() {
 
     const updated = updateUserOnboarding({
       gender: formData.gender as 'Male' | 'Female',
+      age: parseInt(formData.age),
       height: parseFloat(formData.height),
       weight: parseFloat(formData.weight),
       workoutFrequency: parseInt(formData.workoutFrequency),
     })
 
     if (updated) {
-      router.push('/')
+      router.push('/onboarding/preferences')
     }
   }
 
@@ -98,28 +109,48 @@ export default function OnboardingPage() {
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, gender: 'Male' })}
-                  className={`py-4 px-6 rounded-lg font-semibold transition-all border-2 ${
-                    formData.gender === 'Male'
+                  className={`py-4 px-6 rounded-lg font-semibold transition-all border-2 ${formData.gender === 'Male'
                       ? 'bg-red-600 border-red-500 text-white'
                       : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
-                  }`}
+                    }`}
                 >
                   Male
                 </button>
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, gender: 'Female' })}
-                  className={`py-4 px-6 rounded-lg font-semibold transition-all border-2 ${
-                    formData.gender === 'Female'
+                  className={`py-4 px-6 rounded-lg font-semibold transition-all border-2 ${formData.gender === 'Female'
                       ? 'bg-red-600 border-red-500 text-white'
                       : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
-                  }`}
+                    }`}
                 >
                   Female
                 </button>
               </div>
               {errors.gender && (
                 <p className="text-red-400 text-sm mt-2">{errors.gender}</p>
+              )}
+              {errors.gender && (
+                <p className="text-red-400 text-sm mt-2">{errors.gender}</p>
+              )}
+            </div>
+
+            {/* Age */}
+            <div>
+              <label className="block text-lg font-semibold text-white mb-2">
+                Age *
+              </label>
+              <input
+                type="number"
+                value={formData.age}
+                onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-600 text-lg"
+                placeholder="25"
+                min="10"
+                max="100"
+              />
+              {errors.age && (
+                <p className="text-red-400 text-sm mt-2">{errors.age}</p>
               )}
             </div>
 
@@ -173,33 +204,30 @@ export default function OnboardingPage() {
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, workoutFrequency: '3' })}
-                  className={`py-4 px-6 rounded-lg font-semibold transition-all border-2 ${
-                    formData.workoutFrequency === '3'
+                  className={`py-4 px-6 rounded-lg font-semibold transition-all border-2 ${formData.workoutFrequency === '3'
                       ? 'bg-red-600 border-red-500 text-white'
                       : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
-                  }`}
+                    }`}
                 >
                   3 times/week
                 </button>
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, workoutFrequency: '4' })}
-                  className={`py-4 px-6 rounded-lg font-semibold transition-all border-2 ${
-                    formData.workoutFrequency === '4'
+                  className={`py-4 px-6 rounded-lg font-semibold transition-all border-2 ${formData.workoutFrequency === '4'
                       ? 'bg-red-600 border-red-500 text-white'
                       : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
-                  }`}
+                    }`}
                 >
                   4 times/week
                 </button>
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, workoutFrequency: '6' })}
-                  className={`py-4 px-6 rounded-lg font-semibold transition-all border-2 ${
-                    formData.workoutFrequency === '6'
+                  className={`py-4 px-6 rounded-lg font-semibold transition-all border-2 ${formData.workoutFrequency === '6'
                       ? 'bg-red-600 border-red-500 text-white'
                       : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
-                  }`}
+                    }`}
                 >
                   6 times/week
                 </button>
@@ -214,7 +242,7 @@ export default function OnboardingPage() {
               type="submit"
               className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-6 rounded-lg transition-colors text-lg mt-8"
             >
-              Complete Setup
+              Next Step
             </button>
           </form>
         </div>

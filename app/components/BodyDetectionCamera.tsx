@@ -12,10 +12,10 @@ interface BodyDetectionCameraProps {
   enableDetection?: boolean
 }
 
-export default function BodyDetectionCamera({ 
-  width = 640, 
+export default function BodyDetectionCamera({
+  width = 640,
   height = 480,
-  enableDetection = true 
+  enableDetection = true
 }: BodyDetectionCameraProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -30,76 +30,84 @@ export default function BodyDetectionCamera({
     const canvasCtx = canvasRef.current.getContext('2d')
     if (!canvasCtx) return
 
-    // Initialize MediaPipe Pose
-    const pose = new Pose({
-      locateFile: (file) => {
-        return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
-      },
-    })
+    let isMounted = true
+    let cameraInstance: Camera | null = null
+    let poseInstance: Pose | null = null
 
-    pose.setOptions({
-      modelComplexity: 1,
-      smoothLandmarks: true,
-      enableSegmentation: false,
-      smoothSegmentation: false,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5,
-    })
+    const initializeCamera = async () => {
+      // Initialize MediaPipe Pose
+      const pose = new Pose({
+        locateFile: (file) => {
+          return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+        },
+      })
 
-    // Set up pose detection callback
-    pose.onResults((results) => {
-      if (!canvasCtx || !canvasRef.current) return
+      pose.setOptions({
+        modelComplexity: 1,
+        smoothLandmarks: true,
+        enableSegmentation: false,
+        smoothSegmentation: false,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5,
+      })
 
-      // Clear canvas
-      canvasCtx.save()
-      canvasCtx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
+      pose.onResults((results) => {
+        if (!isMounted || !canvasCtx || !canvasRef.current) return
 
-      // Only draw body detection if enabled and detection is active
-      if (enableDetection && isDetecting && results.poseLandmarks) {
-        // Draw pose landmarks and connections
-        drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {
-          color: '#00FF00',
-          lineWidth: 2,
+        canvasCtx.save()
+        canvasCtx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
+
+        if (enableDetection && isDetecting && results.poseLandmarks) {
+          drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {
+            color: '#00FF00',
+            lineWidth: 2,
+          })
+          drawLandmarks(canvasCtx, results.poseLandmarks, {
+            color: '#FF0000',
+            lineWidth: 1,
+            radius: 3,
+          })
+        }
+        canvasCtx.restore()
+      })
+
+      poseInstance = pose
+      poseRef.current = pose
+
+      if (videoRef.current) {
+        const camera = new Camera(videoRef.current, {
+          onFrame: async () => {
+            if (isMounted && videoRef.current && poseRef.current && enableDetection && isDetecting) {
+              await poseRef.current.send({ image: videoRef.current })
+            }
+          },
+          width: width,
+          height: height,
         })
-        drawLandmarks(canvasCtx, results.poseLandmarks, {
-          color: '#FF0000',
-          lineWidth: 1,
-          radius: 3,
-        })
-      }
-      canvasCtx.restore()
-    })
 
-    poseRef.current = pose
+        cameraInstance = camera
+        cameraRef.current = camera
 
-    // Initialize camera
-    const camera = new Camera(videoRef.current, {
-      onFrame: async () => {
-        if (videoRef.current && poseRef.current) {
-          // Only process frame if detection is enabled and active
-          if (enableDetection && isDetecting) {
-            await poseRef.current.send({ image: videoRef.current })
+        try {
+          await camera.start()
+        } catch (err: any) {
+          if (isMounted) {
+            setError('Failed to join camera: ' + err.message)
+            console.error('Camera error:', err)
           }
         }
-      },
-      width: width,
-      height: height,
-    })
-
-    camera.start().catch((err) => {
-      setError('Failed to access camera: ' + err.message)
-      console.error('Camera error:', err)
-    })
-
-    cameraRef.current = camera
-
-    // Cleanup
-    return () => {
-      if (cameraRef.current) {
-        cameraRef.current.stop()
       }
-      if (poseRef.current) {
-        poseRef.current.close()
+    }
+
+    initializeCamera()
+
+    return () => {
+      isMounted = false
+      if (cameraInstance) {
+        cameraInstance.stop()
+      }
+      if (poseInstance) {
+        poseInstance.close()
       }
     }
   }, [width, height, enableDetection, isDetecting])
@@ -125,7 +133,7 @@ export default function BodyDetectionCamera({
       <h3 className="text-2xl font-bold text-gray-900 mb-4">
         Body Detection Camera
       </h3>
-      
+
       <div className="relative">
         <video
           ref={videoRef}
@@ -165,22 +173,20 @@ export default function BodyDetectionCamera({
         <button
           onClick={startDetection}
           disabled={!enableDetection || isDetecting}
-          className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-            !enableDetection || isDetecting
+          className={`px-6 py-3 rounded-lg font-semibold transition-colors ${!enableDetection || isDetecting
               ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
               : 'bg-green-600 text-white hover:bg-green-700'
-          }`}
+            }`}
         >
           Start Body Detection
         </button>
         <button
           onClick={stopDetection}
           disabled={!isDetecting}
-          className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-            !isDetecting
+          className={`px-6 py-3 rounded-lg font-semibold transition-colors ${!isDetecting
               ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
               : 'bg-red-600 text-white hover:bg-red-700'
-          }`}
+            }`}
         >
           Stop Detection
         </button>

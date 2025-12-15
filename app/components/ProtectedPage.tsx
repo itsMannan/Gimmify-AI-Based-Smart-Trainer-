@@ -12,7 +12,7 @@ export default function ProtectedPage({ children }: { children: React.ReactNode 
       router.push('/auth')
       return
     }
-    
+
     if (!hasCompletedOnboarding()) {
       router.push('/onboarding')
       return

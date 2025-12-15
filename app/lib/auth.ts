@@ -8,12 +8,16 @@ export interface User {
   email: string;
   contactInfo?: string;
   address?: string;
-  provider?: 'email' | 'facebook' | 'gmail' | 'icloud';
+  provider?: 'email' | 'facebook' | 'gmail' | 'apple';
   onboardingCompleted: boolean;
   gender?: 'Male' | 'Female';
+  age?: number;
   height?: number; // in cm
   weight?: number; // in kg
   workoutFrequency?: number; // times per week
+  experienceLevel?: 'Beginner' | 'Intermediate' | 'Advanced';
+  injury?: 'None' | 'Knee' | 'Back' | 'Shoulder' | 'Other';
+  feedbackPreference?: 'Real-time voice' | 'On-screen text' | 'After set summary';
 }
 
 export function getUser(): User | null {
@@ -52,7 +56,7 @@ export function createUser(data: {
   email: string;
   contactInfo?: string;
   address?: string;
-  provider?: 'email' | 'facebook' | 'gmail' | 'icloud';
+  provider?: 'email' | 'facebook' | 'gmail' | 'apple';
 }): User {
   const user: User = {
     id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -63,19 +67,15 @@ export function createUser(data: {
   return user;
 }
 
-export function updateUserOnboarding(data: {
-  gender: 'Male' | 'Female';
-  height: number;
-  weight: number;
-  workoutFrequency: number;
-}): User | null {
+export function updateUserOnboarding(data: Partial<User>): User | null {
   const user = getUser();
   if (!user) return null;
-  
+
   const updatedUser: User = {
     ...user,
     ...data,
-    onboardingCompleted: true,
+    // Only mark as completed if we have all necessary fields (checking a key field from step 2)
+    onboardingCompleted: data.feedbackPreference ? true : user.onboardingCompleted,
   };
   setUser(updatedUser);
   return updatedUser;
