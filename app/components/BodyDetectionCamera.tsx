@@ -25,18 +25,41 @@ export default function BodyDetectionCamera({
   const cameraRef = useRef<Camera | null>(null)
 
   useEffect(() => {
+    let isActive = true
+    let camera: Camera | null = null
+    let pose: Pose | null = null
+
     if (!videoRef.current || !canvasRef.current) return
 
     const canvasCtx = canvasRef.current.getContext('2d')
     if (!canvasCtx) return
 
-    let isMounted = true
-    let cameraInstance: Camera | null = null
-    let poseInstance: Pose | null = null
+    const onResults = (results: any) => {
+      // Check if component is still active before drawing
+      if (!isActive || !canvasRef.current || !canvasCtx) return
 
-    const initializeCamera = async () => {
-      // Initialize MediaPipe Pose
-      const pose = new Pose({
+      canvasCtx.save()
+      canvasCtx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
+
+      // Draw detection
+      if (results.poseLandmarks) {
+        drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {
+          color: '#00FF00',
+          lineWidth: 2,
+        })
+        drawLandmarks(canvasCtx, results.poseLandmarks, {
+          color: '#FF0000',
+          lineWidth: 1,
+          radius: 3,
+        })
+      }
+      canvasCtx.restore()
+    }
+
+    const init = async () => {
+      if (!isActive) return
+
+      pose = new Pose({
         locateFile: (file) => {
           return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
         },
@@ -51,66 +74,43 @@ export default function BodyDetectionCamera({
         minTrackingConfidence: 0.5,
       })
 
-      pose.onResults((results) => {
-        if (!isMounted || !canvasCtx || !canvasRef.current) return
-
-        canvasCtx.save()
-        canvasCtx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
-
-        if (enableDetection && isDetecting && results.poseLandmarks) {
-          drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {
-            color: '#00FF00',
-            lineWidth: 2,
-          })
-          drawLandmarks(canvasCtx, results.poseLandmarks, {
-            color: '#FF0000',
-            lineWidth: 1,
-            radius: 3,
-          })
-        }
-        canvasCtx.restore()
-      })
-
-      poseInstance = pose
-      poseRef.current = pose
+      pose.onResults(onResults)
 
       if (videoRef.current) {
-        const camera = new Camera(videoRef.current, {
+        camera = new Camera(videoRef.current, {
           onFrame: async () => {
-            if (isMounted && videoRef.current && poseRef.current && enableDetection && isDetecting) {
-              await poseRef.current.send({ image: videoRef.current })
+            // CRITICAL: Check isActive AND pose existence before sending
+            // This prevents "Cannot pass deleted object" error
+            if (isActive && pose && isDetecting) {
+              await pose.send({ image: videoRef.current! })
             }
           },
           width: width,
           height: height,
         })
 
-        cameraInstance = camera
-        cameraRef.current = camera
-
-        try {
-          await camera.start()
-        } catch (err: any) {
-          if (isMounted) {
-            setError('Failed to join camera: ' + err.message)
-            console.error('Camera error:', err)
+        if (isActive && isDetecting) {
+          try {
+            await camera.start()
+          } catch (e: any) {
+            if (isActive) setError(`Camera error: ${e.message}`)
           }
         }
       }
     }
 
-    initializeCamera()
+    init()
 
     return () => {
-      isMounted = false
-      if (cameraInstance) {
-        cameraInstance.stop()
+      isActive = false // Immediately stop any future operations
+      if (camera) {
+        camera.stop()
       }
-      if (poseInstance) {
-        poseInstance.close()
+      if (pose) {
+        pose.close()
       }
     }
-  }, [width, height, enableDetection, isDetecting])
+  }, [width, height, isDetecting])
 
   const startDetection = () => {
     setIsDetecting(true)
@@ -174,8 +174,8 @@ export default function BodyDetectionCamera({
           onClick={startDetection}
           disabled={!enableDetection || isDetecting}
           className={`px-6 py-3 rounded-lg font-semibold transition-colors ${!enableDetection || isDetecting
-              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              : 'bg-green-600 text-white hover:bg-green-700'
+            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            : 'bg-green-600 text-white hover:bg-green-700'
             }`}
         >
           Start Body Detection
@@ -184,8 +184,8 @@ export default function BodyDetectionCamera({
           onClick={stopDetection}
           disabled={!isDetecting}
           className={`px-6 py-3 rounded-lg font-semibold transition-colors ${!isDetecting
-              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              : 'bg-red-600 text-white hover:bg-red-700'
+            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            : 'bg-red-600 text-white hover:bg-red-700'
             }`}
         >
           Stop Detection

@@ -18,6 +18,29 @@ export interface User {
   experienceLevel?: 'Beginner' | 'Intermediate' | 'Advanced';
   injury?: 'None' | 'Knee' | 'Back' | 'Shoulder' | 'Other';
   feedbackPreference?: 'Real-time voice' | 'On-screen text' | 'After set summary';
+  profilePhoto?: string; // Base64 data URL
+  settings?: {
+    theme: 'dark' | 'light';
+    cameraPreference: 'always' | 'once' | 'while-using';
+  };
+  performanceData?: Array<{
+    month: string;
+    weight: number;
+    height: number;
+    workoutCount: number;
+  }>;
+}
+
+export function updateUser(data: Partial<User>): User | null {
+  const user = getUser();
+  if (!user) return null;
+
+  const updatedUser: User = {
+    ...user,
+    ...data,
+  };
+  setUser(updatedUser);
+  return updatedUser;
 }
 
 export function getUser(): User | null {

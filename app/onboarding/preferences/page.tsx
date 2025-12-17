@@ -71,8 +71,18 @@ export default function OnboardingPreferencesPage() {
                 </div>
 
                 {/* Preferences Card */}
-                <div className="bg-gray-900 rounded-2xl shadow-2xl p-8 md:p-12 border border-red-900/50">
-                    <form onSubmit={handleSubmit} className="space-y-8">
+                <div className="bg-gray-900 rounded-2xl shadow-2xl p-8 md:p-12 border border-red-900/50 relative">
+                    <button
+                        onClick={() => router.push('/onboarding')}
+                        className="absolute top-8 left-8 text-gray-400 hover:text-white transition-colors"
+                        title="Go Back"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                    </button>
+
+                    <form onSubmit={handleSubmit} className="space-y-8 mt-8">
 
                         {/* Experience Level */}
                         <div>
@@ -86,8 +96,8 @@ export default function OnboardingPreferencesPage() {
                                         type="button"
                                         onClick={() => setFormData({ ...formData, experienceLevel: level as any })}
                                         className={`py-4 px-4 rounded-lg font-semibold transition-all border-2 ${formData.experienceLevel === level
-                                                ? 'bg-red-600 border-red-500 text-white'
-                                                : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
+                                            ? 'bg-red-600 border-red-500 text-white'
+                                            : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
                                             }`}
                                     >
                                         {level}
@@ -111,8 +121,8 @@ export default function OnboardingPreferencesPage() {
                                         type="button"
                                         onClick={() => setFormData({ ...formData, injury: inj as any })}
                                         className={`py-4 px-4 rounded-lg font-semibold transition-all border-2 ${formData.injury === inj
-                                                ? 'bg-red-600 border-red-500 text-white'
-                                                : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
+                                            ? 'bg-red-600 border-red-500 text-white'
+                                            : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
                                             }`}
                                     >
                                         {inj}
@@ -136,8 +146,8 @@ export default function OnboardingPreferencesPage() {
                                         type="button"
                                         onClick={() => setFormData({ ...formData, feedbackPreference: pref as any })}
                                         className={`py-4 px-4 rounded-lg font-semibold transition-all border-2 text-sm md:text-base ${formData.feedbackPreference === pref
-                                                ? 'bg-red-600 border-red-500 text-white'
-                                                : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
+                                            ? 'bg-red-600 border-red-500 text-white'
+                                            : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
                                             }`}
                                     >
                                         {pref}

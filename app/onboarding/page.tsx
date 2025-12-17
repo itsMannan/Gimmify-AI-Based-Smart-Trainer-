@@ -98,8 +98,18 @@ export default function OnboardingPage() {
         </div>
 
         {/* Onboarding Card */}
-        <div className="bg-gray-900 rounded-2xl shadow-2xl p-8 md:p-12 border border-red-900/50">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="bg-gray-900 rounded-2xl shadow-2xl p-8 md:p-12 border border-red-900/50 relative">
+          <button
+            onClick={() => router.push('/auth')}
+            className="absolute top-8 left-8 text-gray-400 hover:text-white transition-colors"
+            title="Go Back"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+          </button>
+
+          <form onSubmit={handleSubmit} className="space-y-6 mt-8">
             {/* Gender */}
             <div>
               <label className="block text-lg font-semibold text-white mb-4">
@@ -110,8 +120,8 @@ export default function OnboardingPage() {
                   type="button"
                   onClick={() => setFormData({ ...formData, gender: 'Male' })}
                   className={`py-4 px-6 rounded-lg font-semibold transition-all border-2 ${formData.gender === 'Male'
-                      ? 'bg-red-600 border-red-500 text-white'
-                      : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
+                    ? 'bg-red-600 border-red-500 text-white'
+                    : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
                     }`}
                 >
                   Male
@@ -120,8 +130,8 @@ export default function OnboardingPage() {
                   type="button"
                   onClick={() => setFormData({ ...formData, gender: 'Female' })}
                   className={`py-4 px-6 rounded-lg font-semibold transition-all border-2 ${formData.gender === 'Female'
-                      ? 'bg-red-600 border-red-500 text-white'
-                      : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
+                    ? 'bg-red-600 border-red-500 text-white'
+                    : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
                     }`}
                 >
                   Female
@@ -205,8 +215,8 @@ export default function OnboardingPage() {
                   type="button"
                   onClick={() => setFormData({ ...formData, workoutFrequency: '3' })}
                   className={`py-4 px-6 rounded-lg font-semibold transition-all border-2 ${formData.workoutFrequency === '3'
-                      ? 'bg-red-600 border-red-500 text-white'
-                      : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
+                    ? 'bg-red-600 border-red-500 text-white'
+                    : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
                     }`}
                 >
                   3 times/week
@@ -215,8 +225,8 @@ export default function OnboardingPage() {
                   type="button"
                   onClick={() => setFormData({ ...formData, workoutFrequency: '4' })}
                   className={`py-4 px-6 rounded-lg font-semibold transition-all border-2 ${formData.workoutFrequency === '4'
-                      ? 'bg-red-600 border-red-500 text-white'
-                      : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
+                    ? 'bg-red-600 border-red-500 text-white'
+                    : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
                     }`}
                 >
                   4 times/week
@@ -225,8 +235,8 @@ export default function OnboardingPage() {
                   type="button"
                   onClick={() => setFormData({ ...formData, workoutFrequency: '6' })}
                   className={`py-4 px-6 rounded-lg font-semibold transition-all border-2 ${formData.workoutFrequency === '6'
-                      ? 'bg-red-600 border-red-500 text-white'
-                      : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
+                    ? 'bg-red-600 border-red-500 text-white'
+                    : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
                     }`}
                 >
                   6 times/week

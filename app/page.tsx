@@ -4,47 +4,35 @@ import Image from 'next/image'
 import BodyDetectionCamera from './components/BodyDetectionCamera'
 import VoiceChatBot from './components/VoiceChatBot'
 import ProtectedPage from './components/ProtectedPage'
-import { getUser, clearUser } from './lib/auth'
+import Header from './components/Header'
 import { useRouter } from 'next/navigation'
+
+import { useState, useEffect } from 'react'
+import { getUser } from './lib/auth'
 
 function LearningPageContent() {
     const router = useRouter()
-    const user = getUser()
+    const [theme, setTheme] = useState<'dark' | 'light'>('dark')
 
-    const handleLogout = () => {
-        clearUser()
-        router.push('/auth')
-    }
+    useEffect(() => {
+        const user = getUser()
+        if (user?.settings?.theme) {
+            setTheme(user.settings.theme)
+        }
+    }, [])
 
     return (
-        <div className="min-h-screen gradient-black-red bg-gray-950">
+        <div className={`min-h-screen transition-colors duration-300 ${theme === 'light' ? 'bg-gray-50' : 'gradient-black-red bg-gray-950'}`}>
             {/* Header with User Info */}
-            <div className="bg-gray-900 border-b border-red-900/50">
-                <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-                    <h1 className="text-2xl font-bold text-white">Gimmify</h1>
-                    <div className="flex items-center gap-4">
-                        {user && (
-                            <span className="text-gray-300">
-                                Welcome, {user.firstName} {user.lastName}
-                            </span>
-                        )}
-                        <button
-                            onClick={handleLogout}
-                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
-                        >
-                            Logout
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <Header />
 
             {/* Hero Section */}
             <div className="container mx-auto px-4 py-16">
                 <div className="text-center mb-16">
-                    <h1 className="text-5xl md:text-6xl font-bold text-white mb-4">
+                    <h1 className={`text-5xl md:text-6xl font-bold mb-4 ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
                         Gimmify
                     </h1>
-                    <p className="text-xl md:text-2xl text-red-200 max-w-3xl mx-auto">
+                    <p className={`text-xl md:text-2xl max-w-3xl mx-auto ${theme === 'light' ? 'text-red-600' : 'text-red-200'}`}>
                         Your 24/7 personal fitness coach with real-time posture feedback and AI-powered motivation
                     </p>
                 </div>
@@ -85,12 +73,12 @@ function LearningPageContent() {
                             </div>
 
                             {/* Right Column: Body Detection */}
-                            <div className="w-full bg-gray-900 border border-red-900/50 rounded-2xl shadow-xl p-6 md:p-8">
+                            <div className={`w-full border rounded-2xl shadow-xl p-6 md:p-8 ${theme === 'light' ? 'bg-white border-gray-200' : 'bg-gray-900 border-red-900/50'}`}>
                                 <div className="text-center mb-8">
-                                    <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
+                                    <h2 className={`text-2xl md:text-3xl font-bold mb-4 ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
                                         Try Body Detection
                                     </h2>
-                                    <p className="text-gray-300 max-w-lg mx-auto">
+                                    <p className={`max-w-lg mx-auto ${theme === 'light' ? 'text-gray-600' : 'text-gray-300'}`}>
                                         Experience real-time AI pose analysis. Click "Start" to activate the camera.
                                     </p>
                                 </div>
@@ -109,11 +97,11 @@ function LearningPageContent() {
 
                 {/* Exercise Gallery - Pose Detection in Action */}
                 <section className="mb-16">
-                    <div className="bg-gray-900 border border-red-900/50 rounded-2xl shadow-xl p-8 md:p-12">
-                        <h2 className="text-3xl font-bold text-white mb-8 text-center">
+                    <div className={`border rounded-2xl shadow-xl p-8 md:p-12 ${theme === 'light' ? 'bg-white border-gray-200' : 'bg-gray-900 border-red-900/50'}`}>
+                        <h2 className={`text-3xl font-bold mb-8 text-center ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
                             Pose Detection in Action
                         </h2>
-                        <p className="text-center text-gray-300 mb-10 text-lg max-w-3xl mx-auto">
+                        <p className={`text-center mb-10 text-lg max-w-3xl mx-auto ${theme === 'light' ? 'text-gray-600' : 'text-gray-300'}`}>
                             Our AI technology tracks your movements and provides real-time feedback on your exercise form
                         </p>
                         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -206,15 +194,15 @@ function LearningPageContent() {
 
                 {/* Goal Section */}
                 <section className="mb-16">
-                    <div className="bg-gray-900 border border-red-900/50 rounded-2xl shadow-xl p-8 md:p-12">
-                        <h2 className="text-3xl font-bold text-white mb-6 flex items-center">
+                    <div className={`border rounded-2xl shadow-xl p-8 md:p-12 ${theme === 'light' ? 'bg-white border-gray-200' : 'bg-gray-900 border-red-900/50'}`}>
+                        <h2 className={`text-3xl font-bold mb-6 flex items-center ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
                             <span className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-full w-10 h-10 flex items-center justify-center mr-4 text-xl">
                                 1
                             </span>
                             Goal
                         </h2>
-                        <p className="text-lg text-gray-300 leading-relaxed">
-                            An AI-based trainer that gives <strong className="text-red-400">real-time feedback</strong> on exercise posture,
+                        <p className={`text-lg leading-relaxed ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
+                            An AI-based trainer that gives <strong className="text-red-500">real-time feedback</strong> on exercise posture,
                             counts reps, and motivates users using <strong className="text-red-500">voice + video feedback</strong>.
                             Transform your home workouts with intelligent coaching that adapts to your needs.
                         </p>
@@ -223,8 +211,8 @@ function LearningPageContent() {
 
                 {/* Key AI Platforms */}
                 <section className="mb-16">
-                    <div className="bg-gray-900 border border-red-900/50 rounded-2xl shadow-xl p-8 md:p-12">
-                        <h2 className="text-3xl font-bold text-white mb-6 flex items-center">
+                    <div className={`border rounded-2xl shadow-xl p-8 md:p-12 ${theme === 'light' ? 'bg-white border-gray-200' : 'bg-gray-900 border-red-900/50'}`}>
+                        <h2 className={`text-3xl font-bold mb-6 flex items-center ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
                             <span className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-full w-10 h-10 flex items-center justify-center mr-4 text-xl">
                                 2
                             </span>
@@ -247,8 +235,8 @@ function LearningPageContent() {
                 <section className="mb-16">
                     <div className="grid md:grid-cols-2 gap-8">
                         {/* Technical Terms */}
-                        <div className="bg-gray-900 border border-red-900/50 rounded-2xl shadow-xl p-8">
-                            <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
+                        <div className={`border rounded-2xl shadow-xl p-8 ${theme === 'light' ? 'bg-white border-gray-200' : 'bg-gray-900 border-red-900/50'}`}>
+                            <h2 className={`text-2xl font-bold mb-6 flex items-center ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
                                 <span className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 text-sm">
                                     ⚙️
                                 </span>
@@ -258,17 +246,17 @@ function LearningPageContent() {
                                 {['Pose Estimation', 'Computer Vision', 'Deep Learning', 'Real-Time Feedback', 'Speech Synthesis'].map((term) => (
                                     <div
                                         key={term}
-                                        className="bg-gradient-to-r from-red-900/30 to-gray-800 border-l-4 border-red-600 p-3 rounded"
+                                        className={`border-l-4 border-red-600 p-3 rounded ${theme === 'light' ? 'bg-gray-50 text-gray-800' : 'bg-gradient-to-r from-red-900/30 to-gray-800 text-white'}`}
                                     >
-                                        <p className="font-medium text-white">{term}</p>
+                                        <p className="font-medium">{term}</p>
                                     </div>
                                 ))}
                             </div>
                         </div>
 
                         {/* Non-Technical Terms */}
-                        <div className="bg-gray-900 border border-red-900/50 rounded-2xl shadow-xl p-8">
-                            <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
+                        <div className={`border rounded-2xl shadow-xl p-8 ${theme === 'light' ? 'bg-white border-gray-200' : 'bg-gray-900 border-red-900/50'}`}>
+                            <h2 className={`text-2xl font-bold mb-6 flex items-center ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
                                 <span className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 text-sm">
                                     💪
                                 </span>
@@ -298,7 +286,7 @@ function LearningPageContent() {
                                 No scheduling, no waiting—just pure, intelligent coaching whenever you need it.
                             </p>
                         </div>
-                        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-xl p-8 text-white border border-red-900/50">
+                        <div className={`rounded-2xl shadow-xl p-8 border ${theme === 'light' ? 'bg-white border-gray-200 text-gray-900' : 'bg-gradient-to-br from-gray-800 to-gray-900 border-red-900/50 text-white'}`}>
                             <h2 className="text-2xl font-bold mb-4">Buying Point</h2>
                             <p className="text-lg leading-relaxed">
                                 <strong>Affordable and private</strong> alternative to gym trainers. Get professional-quality
@@ -310,8 +298,8 @@ function LearningPageContent() {
 
                 {/* Competitors */}
                 <section className="mb-16">
-                    <div className="bg-gray-900 border border-red-900/50 rounded-2xl shadow-xl p-8 md:p-12">
-                        <h2 className="text-3xl font-bold text-white mb-6 flex items-center">
+                    <div className={`border rounded-2xl shadow-xl p-8 md:p-12 ${theme === 'light' ? 'bg-white border-gray-200' : 'bg-gray-900 border-red-900/50'}`}>
+                        <h2 className={`text-3xl font-bold mb-6 flex items-center ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
                             <span className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-full w-10 h-10 flex items-center justify-center mr-4 text-xl">
                                 3
                             </span>
@@ -361,11 +349,11 @@ function LearningPageContent() {
 
                 {/* How It Works - Exercise Demo */}
                 <section className="mb-16">
-                    <div className="bg-gray-900 border border-red-900/50 rounded-2xl shadow-xl p-8 md:p-12">
-                        <h2 className="text-3xl font-bold text-white mb-4 text-center">
+                    <div className={`border rounded-2xl shadow-xl p-8 md:p-12 ${theme === 'light' ? 'bg-white border-gray-200' : 'bg-gray-900 border-red-900/50'}`}>
+                        <h2 className={`text-3xl font-bold mb-4 text-center ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
                             How It Works
                         </h2>
-                        <p className="text-center text-gray-300 mb-10 text-lg max-w-2xl mx-auto">
+                        <p className={`text-center mb-10 text-lg max-w-2xl mx-auto ${theme === 'light' ? 'text-gray-600' : 'text-gray-300'}`}>
                             See how our AI analyzes your movements and provides instant feedback
                         </p>
 
@@ -393,8 +381,8 @@ function LearningPageContent() {
                                         <span className="text-2xl">📸</span>
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-white text-lg mb-2">1. Camera Detection</h3>
-                                        <p className="text-gray-300">
+                                        <h3 className={`font-bold text-lg mb-2 ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>1. Camera Detection</h3>
+                                        <p className={`${theme === 'light' ? 'text-gray-600' : 'text-gray-300'}`}>
                                             Your camera captures your movements in real-time using advanced computer vision
                                         </p>
                                     </div>
@@ -405,8 +393,8 @@ function LearningPageContent() {
                                         <span className="text-2xl">🤖</span>
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-white text-lg mb-2">2. AI Analysis</h3>
-                                        <p className="text-gray-300">
+                                        <h3 className={`font-bold text-lg mb-2 ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>2. AI Analysis</h3>
+                                        <p className={`${theme === 'light' ? 'text-gray-600' : 'text-gray-300'}`}>
                                             Our AI analyzes 33 body keypoints to track your posture and form accurately
                                         </p>
                                     </div>
@@ -417,8 +405,8 @@ function LearningPageContent() {
                                         <span className="text-2xl">💬</span>
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-white text-lg mb-2">3. Instant Feedback</h3>
-                                        <p className="text-gray-300">
+                                        <h3 className={`font-bold text-lg mb-2 ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>3. Instant Feedback</h3>
+                                        <p className={`${theme === 'light' ? 'text-gray-600' : 'text-gray-300'}`}>
                                             Receive voice and visual feedback to correct your form and improve technique
                                         </p>
                                     </div>
@@ -429,8 +417,8 @@ function LearningPageContent() {
                                         <span className="text-2xl">📊</span>
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-white text-lg mb-2">4. Track Progress</h3>
-                                        <p className="text-gray-300">
+                                        <h3 className={`font-bold text-lg mb-2 ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>4. Track Progress</h3>
+                                        <p className={`${theme === 'light' ? 'text-gray-600' : 'text-gray-300'}`}>
                                             Monitor your improvements with detailed analytics and rep counting
                                         </p>
                                     </div>
@@ -444,8 +432,8 @@ function LearningPageContent() {
 
                 {/* Impact on Customers */}
                 <section className="mb-16">
-                    <div className="bg-gray-900 border border-red-900/50 rounded-2xl shadow-xl p-8 md:p-12">
-                        <h2 className="text-3xl font-bold text-white mb-6">Impact on Customers</h2>
+                    <div className={`border rounded-2xl shadow-xl p-8 md:p-12 ${theme === 'light' ? 'bg-white border-gray-200' : 'bg-gray-900 border-red-900/50'}`}>
+                        <h2 className={`text-3xl font-bold mb-6 ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>Impact on Customers</h2>
                         <div className="grid md:grid-cols-3 gap-6 mt-6">
                             {[
                                 { icon: '❤️', title: 'Promotes Health', desc: 'Better fitness outcomes' },
@@ -455,11 +443,11 @@ function LearningPageContent() {
                             ].map((impact) => (
                                 <div
                                     key={impact.title}
-                                    className="bg-gradient-to-br from-red-900/30 to-gray-800 border border-red-900/50 rounded-lg p-6 text-center hover:shadow-lg hover:border-red-600 transition-all"
+                                    className={`border rounded-lg p-6 text-center hover:shadow-lg transition-all ${theme === 'light' ? 'bg-gray-50 border-gray-200 hover:border-red-400' : 'bg-gradient-to-br from-red-900/30 to-gray-800 border-red-900/50 hover:border-red-600'}`}
                                 >
                                     <div className="text-4xl mb-3">{impact.icon}</div>
-                                    <h3 className="font-bold text-white mb-2">{impact.title}</h3>
-                                    <p className="text-gray-300 text-sm">{impact.desc}</p>
+                                    <h3 className={`font-bold mb-2 ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>{impact.title}</h3>
+                                    <p className={`text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-300'}`}>{impact.desc}</p>
                                 </div>
                             ))}
                         </div>
@@ -508,7 +496,7 @@ function LearningPageContent() {
             </div>
 
             {/* Footer */}
-            <footer className="bg-gray-900 border-t border-red-900/50 text-white py-8">
+            <footer className={`border-t py-8 ${theme === 'light' ? 'bg-white border-gray-200 text-gray-600' : 'bg-gray-900 border-red-900/50 text-white'}`}>
                 <div className="container mx-auto px-4 text-center">
                     <p className="text-gray-400">© 2024 Gimmify. All rights reserved.</p>
                 </div>
