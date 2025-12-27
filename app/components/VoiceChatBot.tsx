@@ -21,7 +21,11 @@ interface ConversationMessage {
   content: string
 }
 
-export default function VoiceChatBot() {
+interface VoiceChatBotProps {
+  theme?: 'dark' | 'light'
+}
+
+export default function VoiceChatBot({ theme = 'dark' }: VoiceChatBotProps) {
   const [isListening, setIsListening] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
@@ -388,10 +392,10 @@ export default function VoiceChatBot() {
   ]
 
   return (
-    <div className="bg-gray-900 border border-red-900/50 rounded-2xl shadow-xl p-6 md:p-8 max-w-4xl mx-auto">
+    <div className={`border rounded-[32px] shadow-2xl p-6 md:p-8 max-w-4xl mx-auto transition-colors duration-500 ${theme === 'light' ? 'bg-white border-gray-200 shadow-gray-200/50 text-gray-900' : 'bg-[#0d0d12] border-red-900/40 text-white'}`}>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-3xl font-bold text-white">
-          🎤 Voice Chat Bot
+        <h2 className={`text-3xl font-black tracking-tight ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
+          🎤 AI Voice Assistant
         </h2>
         <div className="flex items-center gap-2">
           <div className={`w-3 h-3 rounded-full ${hasOpenAI ? 'bg-green-500' : 'bg-yellow-500'} animate-pulse`}></div>
@@ -432,12 +436,12 @@ export default function VoiceChatBot() {
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[80%] rounded-lg px-4 py-2 ${message.role === 'user'
-                ? 'bg-red-600 text-white'
-                : 'bg-gray-800 text-gray-100 border border-gray-700'
+              className={`max-w-[80%] rounded-2xl px-5 py-3 ${message.role === 'user'
+                ? 'bg-[#cc2d2d] text-white shadow-lg'
+                : theme === 'light' ? 'bg-gray-100 text-gray-800 border border-gray-200' : 'bg-[#1a1a24] text-gray-100 border border-gray-800'
                 }`}
             >
-              <p className="text-sm leading-relaxed">{message.text}</p>
+              <p className="text-sm font-medium leading-relaxed">{message.text}</p>
               <p className="text-xs opacity-50 mt-1">
                 {message.timestamp.toLocaleTimeString()}
               </p>

@@ -10,12 +10,14 @@ interface BodyDetectionCameraProps {
   width?: number
   height?: number
   enableDetection?: boolean
+  theme?: 'dark' | 'light'
 }
 
 export default function BodyDetectionCamera({
   width = 640,
   height = 480,
-  enableDetection = true
+  enableDetection = true,
+  theme = 'dark'
 }: BodyDetectionCameraProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -129,9 +131,9 @@ export default function BodyDetectionCamera({
   }
 
   return (
-    <div className="flex flex-col items-center space-y-4 p-6 bg-white rounded-2xl shadow-xl">
-      <h3 className="text-2xl font-bold text-gray-900 mb-4">
-        Body Detection Camera
+    <div className={`flex flex-col items-center space-y-6 p-8 rounded-[32px] shadow-2xl transition-all duration-500 ${theme === 'light' ? 'bg-white border-gray-200 shadow-gray-200/50' : 'bg-[#0d0d12] border-red-900/40'}`}>
+      <h3 className={`text-2xl font-black ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
+        Body Detection Preview
       </h3>
 
       <div className="relative">
@@ -174,8 +176,8 @@ export default function BodyDetectionCamera({
           onClick={startDetection}
           disabled={!enableDetection || isDetecting}
           className={`px-6 py-3 rounded-lg font-semibold transition-colors ${!enableDetection || isDetecting
-              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              : 'bg-green-600 text-white hover:bg-green-700'
+            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            : 'bg-green-600 text-white hover:bg-green-700'
             }`}
         >
           Start Body Detection
@@ -184,8 +186,8 @@ export default function BodyDetectionCamera({
           onClick={stopDetection}
           disabled={!isDetecting}
           className={`px-6 py-3 rounded-lg font-semibold transition-colors ${!isDetecting
-              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              : 'bg-red-600 text-white hover:bg-red-700'
+            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            : 'bg-red-600 text-white hover:bg-red-700'
             }`}
         >
           Stop Detection
