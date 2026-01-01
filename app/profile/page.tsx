@@ -63,23 +63,27 @@ export default function ProfilePage() {
         return () => window.removeEventListener('gimmify-user-updated', handleUpdate)
     }, [router])
 
-    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (file) {
+            setLoading(true)
             const reader = new FileReader()
-            reader.onloadend = () => {
+            reader.onloadend = async () => {
                 const base64String = reader.result as string
-                if (updateUser({ profilePhoto: base64String })) {
-                    setUser(prev => prev ? { ...prev, profilePhoto: base64String } : null)
+                const updated = await updateUser({ profilePhoto: base64String })
+                if (updated) {
+                    setUser(updated)
                 }
+                setLoading(false)
             }
             reader.readAsDataURL(file)
         }
     }
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        const updated = updateUser({
+        setLoading(true)
+        const updated = await updateUser({
             firstName,
             lastName,
             username,
@@ -94,6 +98,7 @@ export default function ProfilePage() {
             setMessage('Profile updated successfully!')
             setTimeout(() => setMessage(''), 3000)
         }
+        setLoading(false)
     }
 
     if (loading) return <div className="min-h-screen bg-gray-950 flex items-center justify-center text-white">Loading...</div>
@@ -126,7 +131,7 @@ export default function ProfilePage() {
                             </div>
                             <div>
                                 <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight">
-                                    {user?.username || `${user?.firstName} ${user?.lastName}`}
+                                    {user?.username || (user?.firstName ? `${user.firstName} ${user.lastName || ''}` : 'User')}
                                 </h1>
                                 <p className="text-red-100 opacity-90 font-medium">{user?.email}</p>
                             </div>

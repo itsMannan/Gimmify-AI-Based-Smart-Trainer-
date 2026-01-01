@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { isAuthenticated, hasCompletedOnboarding, createUser } from '../lib/auth'
+import { isAuthenticated, hasCompletedOnboarding, createUserProfile, fetchUserProfile, setUser } from '../lib/auth'
+import { supabase } from '../lib/supabase'
 
 export default function AuthPage() {
   const router = useRouter()
@@ -16,13 +17,71 @@ export default function AuthPage() {
     address: '',
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    // Redirect if already authenticated and onboarded
-    if (isAuthenticated() && hasCompletedOnboarding()) {
-      router.push('/')
-    } else if (isAuthenticated() && !hasCompletedOnboarding()) {
-      router.push('/onboarding')
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state change:', event, session?.user?.id)
+
+      if (session?.user) {
+        setLoading(true)
+        try {
+          const profile = await fetchUserProfile(session.user.id)
+
+          if (!profile || !profile.firstName || profile.firstName === 'User') {
+            // New user, missing profile, or placeholder name - try to sync from metadata
+            const { user } = session
+            const metadata = user.user_metadata || {}
+
+            // Extract name (fallback to 'User' if missing)
+            let firstName = profile?.firstName && profile.firstName !== 'User' ? profile.firstName : 'User'
+            let lastName = profile?.lastName || ''
+
+            if (metadata.full_name) {
+              const parts = metadata.full_name.split(' ')
+              firstName = parts[0]
+              lastName = parts.slice(1).join(' ')
+            } else if (metadata.name) {
+              const parts = metadata.name.split(' ')
+              firstName = parts[0]
+              lastName = parts.slice(1).join(' ')
+            } else if (firstName === 'User' && user.email) {
+              // Fallback: Extract from email if no name found
+              firstName = user.email.split('@')[0]
+            }
+
+            // Upsert profile
+            await createUserProfile({
+              id: user.id,
+              firstName: firstName,
+              lastName: lastName,
+              email: user.email || '',
+              onboardingCompleted: profile?.onboardingCompleted || false
+            })
+
+            if (profile?.onboardingCompleted) {
+              router.push('/')
+            } else {
+              router.push('/onboarding')
+            }
+            return
+          }
+
+          if (profile.onboardingCompleted) {
+            router.push('/')
+          } else {
+            router.push('/onboarding')
+          }
+        } catch (err) {
+          console.error('Error fetching/syncing profile:', err)
+        } finally {
+          setLoading(false)
+        }
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
     }
   }, [router])
 
@@ -51,42 +110,80 @@ export default function AuthPage() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!validateForm()) return
+    setLoading(true)
 
-    if (isSignUp) {
-      // Create new user
-      createUser({
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        contactInfo: formData.contactInfo || undefined,
-        address: formData.address || undefined,
-        provider: 'email',
-      })
-      router.push('/onboarding')
-    } else {
-      // Sign in - for demo, just check if user exists
-      const existingUser = localStorage.getItem('gimmify_user')
-      if (existingUser) {
-        router.push('/')
+    try {
+      if (isSignUp) {
+        const { data, error } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            data: {
+              first_name: formData.firstName,
+              last_name: formData.lastName,
+            }
+          }
+        })
+
+        if (error) {
+          setErrors({ email: error.message })
+          setLoading(false)
+        } else if (data.user) {
+          // Create profile in our database
+          await createUserProfile({
+            id: data.user.id,
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            onboardingCompleted: false
+          })
+          // Redirection handled by onAuthStateChange
+        }
       } else {
-        setErrors({ email: 'No account found. Please sign up first.' })
+        const { error } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password,
+        })
+
+        if (error) {
+          setErrors({ email: error.message })
+          setLoading(false)
+        }
+        // Redirection handled by onAuthStateChange
       }
+    } catch (err) {
+      console.error('Auth error:', err)
+      setErrors({ email: 'An unexpected error occurred. Please try again.' })
+      setLoading(false)
     }
   }
 
-  const handleSocialLogin = (provider: 'facebook' | 'gmail' | 'apple') => {
-    // For demo purposes, create a user with social provider
-    const mockEmail = `${provider}@example.com`
-    createUser({
-      firstName: provider.charAt(0).toUpperCase() + provider.slice(1),
-      lastName: 'User',
-      email: mockEmail,
-      provider,
+  const handleSocialLogin = async (provider: 'facebook' | 'google' | 'apple') => {
+    const options: { redirectTo: string; queryParams?: any } = {
+      redirectTo: `${window.location.origin}/onboarding`
+    }
+
+    if (provider === 'google') {
+      options.queryParams = {
+        access_type: 'offline',
+        prompt: 'consent select_account',
+      }
+    }
+
+    if (provider === 'facebook') {
+      options.queryParams = {
+        auth_type: 'reauthenticate',
+      }
+    }
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: provider === 'google' ? 'google' : provider as any,
+      options
     })
-    router.push('/onboarding')
+    if (error) console.error('Social login error:', error)
   }
 
   return (
@@ -105,8 +202,8 @@ export default function AuthPage() {
             <button
               onClick={() => setIsSignUp(false)}
               className={`flex-1 py-2 px-4 rounded-md font-semibold transition-all ${!isSignUp
-                  ? 'bg-red-600 text-white'
-                  : 'text-gray-400 hover:text-white'
+                ? 'bg-red-600 text-white'
+                : 'text-gray-400 hover:text-white'
                 }`}
             >
               Sign In
@@ -114,8 +211,8 @@ export default function AuthPage() {
             <button
               onClick={() => setIsSignUp(true)}
               className={`flex-1 py-2 px-4 rounded-md font-semibold transition-all ${isSignUp
-                  ? 'bg-red-600 text-white'
-                  : 'text-gray-400 hover:text-white'
+                ? 'bg-red-600 text-white'
+                : 'text-gray-400 hover:text-white'
                 }`}
             >
               Sign Up
@@ -134,7 +231,7 @@ export default function AuthPage() {
               Continue with Facebook
             </button>
             <button
-              onClick={() => handleSocialLogin('gmail')}
+              onClick={() => handleSocialLogin('google')}
               className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -143,7 +240,7 @@ export default function AuthPage() {
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
               </svg>
-              Continue with Gmail
+              Continue with Google
             </button>
             <button
               onClick={() => handleSocialLogin('apple')}
@@ -267,9 +364,10 @@ export default function AuthPage() {
 
             <button
               type="submit"
-              className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors mt-6"
+              disabled={loading}
+              className={`w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors mt-6 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {isSignUp ? 'Create Account' : 'Sign In'}
+              {loading ? 'Processing...' : (isSignUp ? 'Create Account' : 'Sign In')}
             </button>
           </form>
         </div>

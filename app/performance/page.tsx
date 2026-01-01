@@ -69,9 +69,10 @@ export default function PerformancePage() {
         return () => window.removeEventListener('gimmify-user-updated', handleUpdate as EventListener)
     }, [router])
 
-    const handleSave = (e?: React.FormEvent) => {
+    const handleSave = async (e?: React.FormEvent) => {
         if (e) e.preventDefault()
-        const updated = updateUser({
+        setLoading(true)
+        const updated = await updateUser({
             weight: parseFloat(weight),
             height: parseFloat(height),
             age: parseInt(age),
@@ -84,6 +85,7 @@ export default function PerformancePage() {
             setMessage('Performance stats saved successfully!')
             setTimeout(() => setMessage(''), 3000)
         }
+        setLoading(false)
     }
 
     if (loading) return <div className="min-h-screen bg-gray-950 flex items-center justify-center text-white">Loading...</div>

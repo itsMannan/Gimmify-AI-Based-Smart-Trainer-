@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { getUser, hasCompletedOnboarding, updateUserOnboarding } from '../lib/auth'
+import { supabase } from '../lib/supabase'
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -14,19 +15,24 @@ export default function OnboardingPage() {
     workoutFrequency: '' as '3' | '4' | '6' | '',
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    // Redirect if not authenticated
-    const user = getUser()
-    if (!user) {
-      router.push('/auth')
-      return
-    }
+    const checkSession = async () => {
+      // Direct session check to prevent redirect loops for new social users
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        router.push('/auth')
+        return
+      }
 
-    // Redirect if already completed onboarding
-    if (hasCompletedOnboarding()) {
-      router.push('/')
+      // Optional: Check if onboarding is truly completed? 
+      // Ideally we fetch profile here but let's trust the flow for now.
+      if (hasCompletedOnboarding()) {
+        router.push('/')
+      }
     }
+    checkSession()
   }, [router])
 
   const validateForm = () => {
@@ -71,21 +77,30 @@ export default function OnboardingPage() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!validateForm()) return
+    setLoading(true)
 
-    const updated = updateUserOnboarding({
-      gender: formData.gender as 'Male' | 'Female',
-      age: parseInt(formData.age),
-      height: parseFloat(formData.height),
-      weight: parseFloat(formData.weight),
-      workoutFrequency: parseInt(formData.workoutFrequency),
-    })
+    try {
+      const updated = await updateUserOnboarding({
+        gender: formData.gender as 'Male' | 'Female',
+        age: parseInt(formData.age),
+        height: parseFloat(formData.height),
+        weight: parseFloat(formData.weight),
+        workoutFrequency: parseInt(formData.workoutFrequency),
+      })
 
-    if (updated) {
-      router.push('/onboarding/preferences')
+      if (updated) {
+        router.push('/onboarding/preferences')
+      } else {
+        setErrors(prev => ({ ...prev, submit: 'Failed to save data. Please try again.' }))
+      }
+    } catch (err) {
+      console.error('Submission error:', err)
+      setErrors(prev => ({ ...prev, submit: 'An unexpected error occurred.' }))
     }
+    setLoading(false)
   }
 
   return (
@@ -110,8 +125,8 @@ export default function OnboardingPage() {
                   type="button"
                   onClick={() => setFormData({ ...formData, gender: 'Male' })}
                   className={`py-4 px-6 rounded-lg font-semibold transition-all border-2 ${formData.gender === 'Male'
-                      ? 'bg-red-600 border-red-500 text-white'
-                      : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
+                    ? 'bg-red-600 border-red-500 text-white'
+                    : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
                     }`}
                 >
                   Male
@@ -120,8 +135,8 @@ export default function OnboardingPage() {
                   type="button"
                   onClick={() => setFormData({ ...formData, gender: 'Female' })}
                   className={`py-4 px-6 rounded-lg font-semibold transition-all border-2 ${formData.gender === 'Female'
-                      ? 'bg-red-600 border-red-500 text-white'
-                      : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
+                    ? 'bg-red-600 border-red-500 text-white'
+                    : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
                     }`}
                 >
                   Female
@@ -205,8 +220,8 @@ export default function OnboardingPage() {
                   type="button"
                   onClick={() => setFormData({ ...formData, workoutFrequency: '3' })}
                   className={`py-4 px-6 rounded-lg font-semibold transition-all border-2 ${formData.workoutFrequency === '3'
-                      ? 'bg-red-600 border-red-500 text-white'
-                      : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
+                    ? 'bg-red-600 border-red-500 text-white'
+                    : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
                     }`}
                 >
                   3 times/week
@@ -215,8 +230,8 @@ export default function OnboardingPage() {
                   type="button"
                   onClick={() => setFormData({ ...formData, workoutFrequency: '4' })}
                   className={`py-4 px-6 rounded-lg font-semibold transition-all border-2 ${formData.workoutFrequency === '4'
-                      ? 'bg-red-600 border-red-500 text-white'
-                      : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
+                    ? 'bg-red-600 border-red-500 text-white'
+                    : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
                     }`}
                 >
                   4 times/week
@@ -225,8 +240,8 @@ export default function OnboardingPage() {
                   type="button"
                   onClick={() => setFormData({ ...formData, workoutFrequency: '6' })}
                   className={`py-4 px-6 rounded-lg font-semibold transition-all border-2 ${formData.workoutFrequency === '6'
-                      ? 'bg-red-600 border-red-500 text-white'
-                      : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
+                    ? 'bg-red-600 border-red-500 text-white'
+                    : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
                     }`}
                 >
                   6 times/week
@@ -237,12 +252,19 @@ export default function OnboardingPage() {
               )}
             </div>
 
+            {errors.submit && (
+              <div className="bg-red-500/10 border border-red-500 text-red-400 p-3 rounded-lg mb-4 text-center">
+                {errors.submit}
+              </div>
+            )}
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-6 rounded-lg transition-colors text-lg mt-8"
+              disabled={loading}
+              className={`w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-6 rounded-lg transition-colors text-lg mt-8 ${loading ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
             >
-              Next Step
+              {loading ? 'Processing...' : 'Next Step'}
             </button>
           </form>
         </div>

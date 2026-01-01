@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { getUser, hasCompletedOnboarding, updateUserOnboarding } from '../../lib/auth'
+import { supabase } from '../../lib/supabase'
 
 export default function OnboardingPreferencesPage() {
     const router = useRouter()
@@ -12,19 +13,20 @@ export default function OnboardingPreferencesPage() {
         feedbackPreference: '' as 'Real-time voice' | 'On-screen text' | 'After set summary' | '',
     })
     const [errors, setErrors] = useState<Record<string, string>>({})
+    const [loading, setLoading] = useState(false)
 
     useEffect(() => {
-        // Redirect if not authenticated
-        const user = getUser()
-        if (!user) {
-            router.push('/auth')
-            return
+        const checkSession = async () => {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (!session) {
+                router.push('/auth')
+                return
+            }
+            if (hasCompletedOnboarding()) {
+                router.push('/')
+            }
         }
-
-        // Check if onboarding is already completed (though we might allow editing)
-        if (hasCompletedOnboarding()) {
-            router.push('/')
-        }
+        checkSession()
     }, [router])
 
     const validateForm = () => {
@@ -46,11 +48,12 @@ export default function OnboardingPreferencesPage() {
         return Object.keys(newErrors).length === 0
     }
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!validateForm()) return
+        setLoading(true)
 
-        const updated = updateUserOnboarding({
+        const updated = await updateUserOnboarding({
             experienceLevel: formData.experienceLevel as 'Beginner' | 'Intermediate' | 'Advanced',
             injury: formData.injury as 'None' | 'Knee' | 'Back' | 'Shoulder' | 'Other',
             feedbackPreference: formData.feedbackPreference as 'Real-time voice' | 'On-screen text' | 'After set summary',
@@ -59,6 +62,7 @@ export default function OnboardingPreferencesPage() {
         if (updated) {
             router.push('/')
         }
+        setLoading(false)
     }
 
     return (
@@ -86,8 +90,8 @@ export default function OnboardingPreferencesPage() {
                                         type="button"
                                         onClick={() => setFormData({ ...formData, experienceLevel: level as any })}
                                         className={`py-4 px-4 rounded-lg font-semibold transition-all border-2 ${formData.experienceLevel === level
-                                                ? 'bg-red-600 border-red-500 text-white'
-                                                : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
+                                            ? 'bg-red-600 border-red-500 text-white'
+                                            : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
                                             }`}
                                     >
                                         {level}
@@ -111,8 +115,8 @@ export default function OnboardingPreferencesPage() {
                                         type="button"
                                         onClick={() => setFormData({ ...formData, injury: inj as any })}
                                         className={`py-4 px-4 rounded-lg font-semibold transition-all border-2 ${formData.injury === inj
-                                                ? 'bg-red-600 border-red-500 text-white'
-                                                : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
+                                            ? 'bg-red-600 border-red-500 text-white'
+                                            : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
                                             }`}
                                     >
                                         {inj}
@@ -136,8 +140,8 @@ export default function OnboardingPreferencesPage() {
                                         type="button"
                                         onClick={() => setFormData({ ...formData, feedbackPreference: pref as any })}
                                         className={`py-4 px-4 rounded-lg font-semibold transition-all border-2 text-sm md:text-base ${formData.feedbackPreference === pref
-                                                ? 'bg-red-600 border-red-500 text-white'
-                                                : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
+                                            ? 'bg-red-600 border-red-500 text-white'
+                                            : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-red-600'
                                             }`}
                                     >
                                         {pref}
@@ -152,9 +156,11 @@ export default function OnboardingPreferencesPage() {
                         {/* Submit Button */}
                         <button
                             type="submit"
-                            className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-6 rounded-lg transition-colors text-lg mt-8"
+                            disabled={loading}
+                            className={`w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-6 rounded-lg transition-colors text-lg mt-8 ${loading ? 'opacity-50 cursor-not-allowed' : ''
+                                }`}
                         >
-                            Complete Setup
+                            {loading ? 'Processing...' : 'Complete Setup'}
                         </button>
                     </form>
                 </div>

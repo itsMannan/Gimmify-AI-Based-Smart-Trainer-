@@ -27,19 +27,25 @@ export default function SettingsPage() {
         return () => window.removeEventListener('gimmify-user-updated', handleUpdate)
     }, [router])
 
-    const handleThemeChange = (theme: 'dark' | 'light') => {
+    const handleThemeChange = async (theme: 'dark' | 'light') => {
         if (!user) return
         if (user.settings?.theme === theme) return
-        updateUser({
+        setLoading(true)
+        const updated = await updateUser({
             settings: { ...user.settings!, theme }
         })
+        if (updated) setUser(updated)
+        setLoading(false)
     }
 
-    const handleCameraChange = (pref: 'always' | 'once' | 'while-using' | 'never') => {
+    const handleCameraChange = async (pref: 'always' | 'once' | 'while-using' | 'never') => {
         if (!user) return
-        updateUser({
+        setLoading(true)
+        const updated = await updateUser({
             settings: { ...user.settings!, cameraPreference: pref }
         })
+        if (updated) setUser(updated)
+        setLoading(false)
     }
 
     if (loading) return <div className="min-h-screen bg-gray-950 flex items-center justify-center text-white">Loading...</div>

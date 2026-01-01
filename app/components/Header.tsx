@@ -43,8 +43,8 @@ export default function Header() {
         }
     }, [])
 
-    const handleLogout = () => {
-        clearUser()
+    const handleLogout = async () => {
+        await clearUser()
         router.push('/auth')
     }
 
@@ -62,7 +62,7 @@ export default function Header() {
                                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                                 className="flex items-center gap-3 focus:outline-none"
                             >
-                                <div className="text-right hidden md:block">
+                                <div className="text-right mr-3">
                                     <p className={`text-sm font-semibold ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>{user.firstName} {user.lastName}</p>
                                     <p className={`text-xs ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>{user.email}</p>
                                 </div>

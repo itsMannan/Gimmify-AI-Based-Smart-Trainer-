@@ -45,6 +45,11 @@ function LearningPageContent() {
                     <h1 className={`text-5xl md:text-6xl font-bold mb-4 ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
                         Gimmify
                     </h1>
+                    {user && (
+                        <p className={`text-lg mb-4 font-mono ${theme === 'light' ? 'text-red-600' : 'text-red-400'}`}>
+                            {user.email}
+                        </p>
+                    )}
                     <p className={`text-xl md:text-2xl max-w-3xl mx-auto ${theme === 'light' ? 'text-gray-600' : 'text-red-200'}`}>
                         Your 24/7 personal fitness coach with real-time posture feedback and AI-powered motivation
                     </p>

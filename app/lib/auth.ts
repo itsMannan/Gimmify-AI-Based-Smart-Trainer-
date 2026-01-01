@@ -1,5 +1,4 @@
-// Simple auth utilities using localStorage
-// In production, this should be replaced with proper authentication
+import { supabase } from './supabase';
 
 export interface User {
   id: string;
@@ -53,10 +52,49 @@ export function setUser(user: User): void {
   window.dispatchEvent(new CustomEvent('gimmify-user-updated', { detail: user }));
 }
 
-export function clearUser(): void {
+export async function fetchUserProfile(userId: string): Promise<User | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single();
+
+  if (error || !data) return null;
+
+  const user: User = {
+    id: data.id,
+    firstName: data.first_name,
+    lastName: data.last_name,
+    email: data.email,
+    gender: data.gender,
+    age: data.age,
+    height: data.height,
+    weight: data.weight,
+    workoutFrequency: data.workout_frequency,
+    weeklyWorkoutFrequency: data.workout_frequency,
+    experienceLevel: data.experience_level,
+    injury: data.injury,
+    feedbackPreference: data.feedback_preference,
+    onboardingCompleted: data.onboarding_completed,
+    settings: {
+      theme: 'dark',
+      cameraPreference: 'while-using'
+    }
+  };
+
+  setUser(user);
+  return user;
+}
+
+export async function clearUser(): Promise<void> {
   if (typeof window === 'undefined') return;
+
+  // Clear local storage
   localStorage.removeItem('gimmify_user');
   window.dispatchEvent(new CustomEvent('gimmify-user-updated', { detail: null }));
+
+  // Sign out from Supabase
+  await supabase.auth.signOut();
 }
 
 export function isAuthenticated(): boolean {
@@ -68,56 +106,100 @@ export function hasCompletedOnboarding(): boolean {
   return user?.onboardingCompleted ?? false;
 }
 
-export function createUser(data: {
-  firstName: string;
-  lastName: string;
-  email: string;
-  contactInfo?: string;
-  address?: string;
-  provider?: 'email' | 'facebook' | 'gmail' | 'apple';
-}): User {
-  const user: User = {
-    id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    ...data,
-    onboardingCompleted: false,
-    settings: {
-      theme: 'dark',
-      cameraPreference: 'while-using'
-    }
-  };
+export async function createUserProfile(user: User): Promise<User | null> {
+  const { error } = await supabase
+    .from('profiles')
+    .upsert([{
+      id: user.id,
+      first_name: user.firstName,
+      last_name: user.lastName,
+      email: user.email,
+      onboarding_completed: false
+    }], { onConflict: 'id' });
+
+  if (error) {
+    console.error('Error creating profile:', error);
+    return null;
+  }
+
   setUser(user);
   return user;
 }
 
-export function updateUser(data: Partial<User>): User | null {
+export async function updateUser(data: Partial<User>): Promise<User | null> {
   const user = getUser();
   if (!user) return null;
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      first_name: data.firstName,
+      last_name: data.lastName,
+      gender: data.gender,
+      age: data.age,
+      height: data.height,
+      weight: data.weight,
+      workout_frequency: data.workoutFrequency || data.weeklyWorkoutFrequency,
+      experience_level: data.experienceLevel,
+      injury: data.injury,
+      feedback_preference: data.feedbackPreference,
+      onboarding_completed: data.onboardingCompleted
+    })
+    .eq('id', user.id);
+
+  if (error) {
+    console.error('Error updating profile:', error);
+    return null;
+  }
 
   const updatedUser: User = {
     ...user,
     ...data,
   };
-
-  // Merge settings if provided partially
-  if (data.settings && user.settings) {
-    updatedUser.settings = { ...user.settings, ...data.settings };
-  }
 
   setUser(updatedUser);
   return updatedUser;
 }
 
-export function updateUserOnboarding(data: Partial<User>): User | null {
-  const user = getUser();
-  if (!user) return null;
+export async function updateUserOnboarding(data: Partial<User>): Promise<User | null> {
+  let user = getUser();
+  let userId = user?.id;
 
-  const updatedUser: User = {
-    ...user,
-    ...data,
-    // Only mark as completed if we have all necessary fields (checking a key field from step 2)
-    onboardingCompleted: data.feedbackPreference ? true : user.onboardingCompleted,
-  };
-  setUser(updatedUser);
-  return updatedUser;
+  if (!userId) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      userId = session.user.id;
+    }
+  }
+
+  if (!userId) return null;
+
+  const onboardingCompleted = data.feedbackPreference ? true : (user?.onboardingCompleted ?? false);
+
+  const { error } = await supabase
+    .from('profiles')
+    .upsert({
+      id: userId,
+      gender: data.gender,
+      age: data.age,
+      height: data.height,
+      weight: data.weight,
+      workout_frequency: data.workoutFrequency,
+      experience_level: data.experienceLevel,
+      injury: data.injury,
+      feedback_preference: data.feedbackPreference,
+      onboarding_completed: onboardingCompleted,
+      email: user?.email
+    }, { onConflict: 'id' })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating onboarding:', error);
+    return null;
+  }
+
+  // Re-fetch full profile to ensure we have everything and update local state
+  return await fetchUserProfile(userId);
 }
 
