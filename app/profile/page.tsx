@@ -10,6 +10,7 @@ export default function ProfilePage() {
     const [user, setUser] = useState<User | null>(null)
     const [loading, setLoading] = useState(true)
     const [message, setMessage] = useState('')
+    const [error, setError] = useState('')
     const fileInputRef = useRef<HTMLInputElement>(null)
 
     // Form states
@@ -82,6 +83,21 @@ export default function ProfilePage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        setError('')
+
+        // Name validation: only alphabets allowed
+        const nameRegex = /^[a-zA-Z]+$/
+        if (firstName && !nameRegex.test(firstName)) {
+            setError('sorry only alphabets no number(1-9) or speacial charater in first or last name')
+            setLoading(false)
+            return
+        }
+        if (lastName && !nameRegex.test(lastName)) {
+            setError('sorry only alphabets no number(1-9) or speacial charater in first or last name')
+            setLoading(false)
+            return
+        }
+
         setLoading(true)
         const updated = await updateUser({
             firstName,
@@ -155,6 +171,12 @@ export default function ProfilePage() {
                         {message && (
                             <div className="bg-green-600/10 text-green-400 p-4 rounded-xl border border-green-600/20 text-center animate-in fade-in zoom-in duration-300 mb-8">
                                 {message}
+                            </div>
+                        )}
+
+                        {error && (
+                            <div className="bg-red-600/10 text-red-500 p-4 rounded-xl border border-red-600/20 text-center animate-in fade-in zoom-in duration-300 mb-8">
+                                {error}
                             </div>
                         )}
 

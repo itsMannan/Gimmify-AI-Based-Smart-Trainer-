@@ -17,6 +17,7 @@ export default function AuthPage() {
     address: '',
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -95,8 +96,18 @@ export default function AuthPage() {
     }
 
     if (isSignUp) {
-      if (!formData.firstName) newErrors.firstName = 'First name is required'
-      if (!formData.lastName) newErrors.lastName = 'Last name is required'
+      if (!formData.firstName) {
+        newErrors.firstName = 'First name is required'
+      } else if (!/^[a-zA-Z]+$/.test(formData.firstName)) {
+        newErrors.firstName = 'sorry only alphabets no number(1-9) or speacial charater in first or last name'
+      }
+
+      if (!formData.lastName) {
+        newErrors.lastName = 'Last name is required'
+      } else if (!/^[a-zA-Z]+$/.test(formData.lastName)) {
+        newErrors.lastName = 'sorry only alphabets no number(1-9) or speacial charater in first or last name'
+      }
+
       if (!formData.password) {
         newErrors.password = 'Password is required'
       } else if (formData.password.length < 6) {
@@ -140,7 +151,15 @@ export default function AuthPage() {
             email: formData.email,
             onboardingCompleted: false
           })
-          // Redirection handled by onAuthStateChange
+
+          if (data.session) {
+            console.log('Signup successful, session exists, redirecting...')
+            router.push('/onboarding')
+          } else {
+            console.log('Signup successful, email confirmation required')
+            setMessage('Please check your email to confirm your account before signing in.')
+            setLoading(false)
+          }
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
@@ -197,6 +216,11 @@ export default function AuthPage() {
 
         {/* Auth Card */}
         <div className="bg-gray-900 rounded-2xl shadow-2xl p-8 border border-red-900/50">
+          {message && (
+            <div className="mb-6 p-4 bg-green-900/30 border border-green-500/50 rounded-lg text-green-400 text-center animate-in fade-in zoom-in duration-300">
+              {message}
+            </div>
+          )}
           {/* Toggle Sign Up / Sign In */}
           <div className="flex mb-6 bg-gray-800 rounded-lg p-1">
             <button

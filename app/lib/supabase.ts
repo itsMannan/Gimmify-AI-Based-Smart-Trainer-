@@ -1,10 +1,19 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://msgtkpbtxfvofdeheden.supabase.co'
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1zZ3RrcGJ0eGZ2b2ZkZWhlZGVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NDYxNzYsImV4cCI6MjA4MjUyMjE3Nn0.O4cj6sdlW2hhUDyU2py5UEI1DKP5TWTzQw44OePmru0'
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('Supabase credentials missing. Please check your .env.local file.')
+const isValidUrl = (url: string | undefined) => {
+    try {
+        return url && new URL(url)
+    } catch {
+        return false
+    }
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Fallback to prevent crash if env vars are missing/invalid (e.g. during setup)
+// This allows the app to load so the user can see instructions, even if auth won't work.
+const urlToUse = isValidUrl(supabaseUrl) ? supabaseUrl! : 'https://placeholder.supabase.co'
+const keyToUse = supabaseAnonKey || 'placeholder-key'
+
+export const supabase = createClient(urlToUse, keyToUse)

@@ -61,10 +61,23 @@ export async function fetchUserProfile(userId: string): Promise<User | null> {
 
   if (error || !data) return null;
 
+  // Automatic Name Extraction logic
+  let firstName = data.first_name
+  if (!firstName && data.email) {
+    try {
+      firstName = data.email.split('@')[0]
+      // Update the DB immediately so it's saved for next time
+      await supabase.from('profiles').update({ first_name: firstName }).eq('id', userId)
+      console.log('Automatically set first name from email:', firstName)
+    } catch (e) {
+      console.warn('Failed to auto-extract name from email', e)
+    }
+  }
+
   const user: User = {
     id: data.id,
-    firstName: data.first_name,
-    lastName: data.last_name,
+    firstName: firstName || 'User', // Fallback
+    lastName: data.last_name || '',
     email: data.email,
     gender: data.gender,
     age: data.age,
@@ -201,5 +214,23 @@ export async function updateUserOnboarding(data: Partial<User>): Promise<User | 
 
   // Re-fetch full profile to ensure we have everything and update local state
   return await fetchUserProfile(userId);
+}
+
+export async function updateEmail(email: string) {
+  const { data, error } = await supabase.auth.updateUser({ email });
+  if (error) {
+    console.error('Error updating email:', error);
+    return { error };
+  }
+  return { data };
+}
+
+export async function updatePassword(password: string) {
+  const { data, error } = await supabase.auth.updateUser({ password });
+  if (error) {
+    console.error('Error updating password:', error);
+    return { error };
+  }
+  return { data };
 }
 

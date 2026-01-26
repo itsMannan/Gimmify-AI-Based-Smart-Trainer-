@@ -1,9 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Pose } from '@mediapipe/pose'
-import { drawConnectors, drawLandmarks } from '@mediapipe/drawing_utils'
-import { POSE_CONNECTIONS } from '@mediapipe/pose'
 
 interface BodyDetectionCameraProps {
   width?: number
@@ -11,6 +8,13 @@ interface BodyDetectionCameraProps {
   enableDetection?: boolean
   theme?: 'dark' | 'light'
 }
+
+// Keypoint indices for MediaPipe
+const CONNECTIONS = [
+  [11, 12], [11, 13], [13, 15], [12, 14], [14, 16], // Upper body
+  [11, 23], [12, 24], [23, 24], // Torso
+  [23, 25], [25, 27], [24, 26], [26, 28] // Lower body
+]
 
 export default function BodyDetectionCamera({
   width = 640,
@@ -20,16 +24,17 @@ export default function BodyDetectionCamera({
 }: BodyDetectionCameraProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  // State
   const [isDetecting, setIsDetecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [aiStatus, setAiStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [diagInfo, setDiagInfo] = useState('Loading scripts...')
 
-  const poseRef = useRef<Pose | null>(null)
-  const isDetectingRef = useRef(isDetecting)
-  const requestRef = useRef<number>()
-  const connectingRef = useRef(false)
-
-  // Use a unique session ID for cache busting per reload
-  const sessionId = useRef(`v=${Date.now()}`).current
+  // Global instances (using any to avoid type conflicts with missing npm types)
+  const poseRef = useRef<any>(null)
+  const isDetectingRef = useRef(false)
+  const animationFrameId = useRef<number>()
 
   useEffect(() => {
     isDetectingRef.current = isDetecting
@@ -37,263 +42,237 @@ export default function BodyDetectionCamera({
 
   useEffect(() => {
     let isMounted = true
-    let animationFrameId: number
-    let pose: Pose | null = null
     let activeStream: MediaStream | null = null
 
-    const initializePose = async () => {
-      // Allow multiple initializations (React Strict Mode compatibility)
-      // but ensure we clean up the previous ones via the isMounted check
-
+    const loadScripts = async () => {
       try {
-        if (connectingRef.current) return;
-        connectingRef.current = true;
+        setDiagInfo('Connecting to AI Engine...')
 
-        console.log('Initializing MediaPipe Pose...')
-        pose = new Pose({
-          locateFile: (file) => {
-            // Load from local assets with cache busting query param
-            return `/mediapipe/pose/${file}?${sessionId}`
+        // Dynamically load MediaPipe from CDN to ensure JS and WASM versions are PERFECT matches
+        // This is the only way to fix the "Aborted(Module.arguments)" error definitively
+        const scripts = [
+          'https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js',
+          'https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js'
+        ]
+
+        for (const src of scripts) {
+          if (!document.querySelector(`script[src="${src}"]`)) {
+            await new Promise((resolve, reject) => {
+              const script = document.createElement('script')
+              script.src = src
+              script.async = true
+              script.onload = resolve
+              script.onerror = reject
+              document.head.appendChild(script)
+            })
+          }
+        }
+
+        if (!isMounted) return
+        initializeAI()
+      } catch (err) {
+        if (isMounted) {
+          setError('Could not load AI scripts. Please check your internet connection.')
+          setAiStatus('error')
+        }
+      }
+    }
+
+    const initializeAI = async () => {
+      try {
+        setDiagInfo('Starting AI Model...')
+
+        // Use Global Pose from the loaded script
+        const Pose = (window as any).Pose
+        if (!Pose) throw new Error('Pose not found in window')
+
+        const pose = new Pose({
+          locateFile: (file: string) => {
+            // Point to matched CDN assets
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
           },
         })
 
         pose.setOptions({
-          modelComplexity: 1,
+          modelComplexity: 0, // Lite for stability
           smoothLandmarks: true,
-          enableSegmentation: false,
-          smoothSegmentation: false,
           minDetectionConfidence: 0.5,
-          minTrackingConfidence: 0.5,
+          minTrackingConfidence: 0.5
         })
 
-        pose.onResults((results) => {
-          if (!isMounted || !canvasRef.current || !canvasRef.current.getContext('2d')) return
-          const canvasCtx = canvasRef.current.getContext('2d')!
+        pose.onResults((results: any) => {
+          if (!isMounted || !canvasRef.current || !isDetectingRef.current) return
 
-          // Clear canvas (but preserve transform)
-          // Note: clearRect needs to cover the entire logical space
+          const canvasCtx = canvasRef.current.getContext('2d')
+          if (!canvasCtx) return
+
+          setDiagInfo(results.poseLandmarks ? `Body Active: ${results.poseLandmarks.length} points` : 'Searching for body...')
+
           canvasCtx.save()
-          canvasCtx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
+          canvasCtx.clearRect(0, 0, width, height)
 
-          // Visual Heartbeat (confirming loop is running)
-          if (isDetectingRef.current) {
-            canvasCtx.fillStyle = 'rgba(0, 255, 0, 0.5)'
-            canvasCtx.beginPath()
-            canvasCtx.arc(20, 20, 5, 0, 2 * Math.PI)
-            canvasCtx.fill()
-          }
-
-          if (enableDetection && isDetectingRef.current && results.poseLandmarks) {
-            console.log('Landmarks detected:', results.poseLandmarks.length)
-
-            // Draw skeleton
-            drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {
-              color: '#00FF00',
-              lineWidth: 2,
-            })
-            drawLandmarks(canvasCtx, results.poseLandmarks, {
-              color: '#FF0000',
-              lineWidth: 1,
-              radius: 3,
-            })
-
-            // Calculate and draw angles
+          if (results.poseLandmarks) {
             const landmarks = results.poseLandmarks
-            const calculateAngle = (a: any, b: any, c: any) => {
-              const radians = Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x)
-              let angle = Math.abs(radians * 180.0 / Math.PI)
-              if (angle > 180.0) angle = 360 - angle
-              return Math.round(angle)
+
+            // Draw Connections
+            canvasCtx.strokeStyle = '#00FF00'
+            canvasCtx.lineWidth = 4
+            CONNECTIONS.forEach(([i, j]) => {
+              const p1 = landmarks[i], p2 = landmarks[j]
+              if (p1 && p2 && (p1.visibility || 0) > 0.4 && (p2.visibility || 0) > 0.4) {
+                canvasCtx.beginPath()
+                canvasCtx.moveTo(p1.x * width, p1.y * height)
+                canvasCtx.lineTo(p2.x * width, p2.y * height)
+                canvasCtx.stroke()
+              }
+            })
+
+            // Draw Joints
+            canvasCtx.fillStyle = '#FF0000'
+            landmarks.forEach((p: any) => {
+              if ((p.visibility || 0) > 0.4) {
+                canvasCtx.beginPath()
+                canvasCtx.arc(p.x * width, p.y * height, 5, 0, 2 * Math.PI)
+                canvasCtx.fill()
+              }
+            })
+
+            // Calculate & Draw Angles
+            const getAngle = (a: any, b: any, c: any) => {
+              const r = Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x)
+              let ang = Math.abs(r * 180 / Math.PI)
+              return Math.round(ang > 180 ? 360 - ang : ang)
             }
-            const drawAngle = (indexA: number, indexB: number, indexC: number) => {
-              if (!landmarks[indexA] || !landmarks[indexB] || !landmarks[indexC]) return
-              const angle = calculateAngle(landmarks[indexA], landmarks[indexB], landmarks[indexC])
-              const x = landmarks[indexB].x * width
-              const y = landmarks[indexB].y * height
+
+            const showAngle = (iA: number, iB: number, iC: number) => {
+              const pA = landmarks[iA], pB = landmarks[iB], pC = landmarks[iC]
+              if (!pA || !pB || !pC || (pB.visibility || 0) < 0.4) return
+              const angle = getAngle(pA, pB, pC)
+              const x = pB.x * width, y = pB.y * height
+              canvasCtx.fillStyle = 'rgba(0,0,0,0.8)'
+              canvasCtx.fillRect(x + 5, y - 22, 55, 26)
               canvasCtx.fillStyle = 'white'
-              canvasCtx.strokeStyle = 'black'
-              canvasCtx.lineWidth = 3
-              canvasCtx.font = 'bold 16px Arial'
-              canvasCtx.strokeText(`${angle}°`, x + 10, y)
+              canvasCtx.font = 'bold 18px Arial'
               canvasCtx.fillText(`${angle}°`, x + 10, y)
             }
-            drawAngle(11, 13, 15); drawAngle(12, 14, 16); drawAngle(23, 25, 27); drawAngle(24, 26, 28);
+
+            showAngle(11, 13, 15); showAngle(12, 14, 16); // Elbows
+            showAngle(23, 25, 27); showAngle(24, 26, 28); // Knees
           }
           canvasCtx.restore()
         })
 
         await pose.initialize()
-        if (!isMounted) { pose.close(); return }
         poseRef.current = pose
-        console.log('Pose initialized successfully')
+        setAiStatus('ready')
+        setDiagInfo('AI Ready')
       } catch (err: any) {
-        console.error('Initialization error:', err)
-        if (isMounted) {
-          let msg = 'Failed to load AI model.'
-          if (err.message && (err.message.includes('Aborted') || err.message.includes('Module.arguments'))) {
-            msg = 'AI Model Error: Version compatibility issue. Retrying connection...'
-            // Optionally retry? For now just show professional error.
-          } else if (err.message) {
-            msg = `AI Error: ${err.message}`
-          }
-          setError(msg)
-        }
+        console.error('AI Init Err:', err)
+        setAiStatus('error')
+        // If the module fails, it's often a browser cache issue
+        setError('AI Load Error. Please try refreshing your browser window.')
       }
     }
 
     const startCamera = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 640, height: 480 } // Request specific resolution
-        })
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { width, height } })
         activeStream = stream
-        if (videoRef.current && isMounted) {
-          videoRef.current.srcObject = stream
-
-          videoRef.current.onloadedmetadata = () => {
-            if (isMounted && videoRef.current) {
-              videoRef.current.play().catch(e => console.error(e))
-              detectFrame()
-            }
-          }
-        } else {
-          // Unmounted before camera started
-          stream.getTracks().forEach(t => t.stop())
-        }
-      } catch (err: any) {
-        console.error('Camera error:', err)
-        if (isMounted) setError('Camera not accessible: ' + err.message)
+        if (videoRef.current && isMounted) videoRef.current.srcObject = stream
+      } catch (e: any) {
+        setError('Camera blocked. Please allow camera access in your browser.')
       }
     }
 
-    const detectFrame = async () => {
+    const detectionLoop = async () => {
       if (!isMounted) return
-
-      if (videoRef.current && !videoRef.current.paused && !videoRef.current.ended) {
-        // Only send if we have a pose instance ready AND user wanted detection
-        if (poseRef.current && isDetectingRef.current) {
+      if (videoRef.current && poseRef.current && isDetectingRef.current) {
+        if (videoRef.current.readyState >= 2) {
           try {
-            // Ensure the video has data
-            if (videoRef.current.readyState >= 2) {
-              await poseRef.current.send({ image: videoRef.current })
-            }
+            await poseRef.current.send({ image: videoRef.current })
           } catch (e) {
-            console.error('Pose send error:', e)
+            // Silently ignore transient errors
           }
         }
       }
-      animationFrameId = requestAnimationFrame(detectFrame)
+      animationFrameId.current = requestAnimationFrame(detectionLoop)
     }
 
-    // specific order: start camera immediately, load AI in background
     startCamera()
-    initializePose()
+    loadScripts()
+    detectionLoop()
 
     return () => {
       isMounted = false
-      cancelAnimationFrame(animationFrameId)
-      if (pose) pose.close()
-      if (activeStream) activeStream.getTracks().forEach(track => track.stop())
-      if (videoRef.current) videoRef.current.srcObject = null
+      if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current)
+      if (poseRef.current) poseRef.current.close()
+      if (activeStream) activeStream.getTracks().forEach(t => t.stop())
     }
-  }, [enableDetection]) // Depend only on enableDetection stable prop
-  // Removed isDetecting from deps
-
-  const startDetection = () => {
-    setIsDetecting(true)
-    setError(null)
-  }
-
-  const stopDetection = () => {
-    setIsDetecting(false)
-    // Clear canvas when stopping
-    if (canvasRef.current) {
-      const ctx = canvasRef.current.getContext('2d')
-      if (ctx) {
-        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
-      }
-    }
-  }
+  }, [width, height])
 
   return (
-    <div className={`flex flex-col items-center space-y-6 p-8 rounded-[32px] shadow-2xl transition-all duration-500 ${theme === 'light' ? 'bg-white border-gray-200 shadow-gray-200/50' : 'bg-[#0d0d12] border-red-900/40'}`}>
-      <h3 className={`text-2xl font-black ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
-        Body Detection Preview
-      </h3>
+    <div className={`flex flex-col items-center space-y-4 p-6 rounded-3xl ${theme === 'light' ? 'bg-white' : 'bg-[#0d0d12] border border-red-900/20'}`}>
+      <h3 className="text-xl font-black text-white uppercase tracking-wider">Detection Preview</h3>
 
-      <div className="relative">
+      <div className="relative overflow-hidden rounded-2xl bg-black shadow-inner" style={{ width, height }}>
         <video
           ref={videoRef}
-          className="rounded-lg"
           autoPlay
           playsInline
           muted
-          style={{
-            transform: 'scaleX(-1)', // Mirror the video
-            width: `${width}px`,
-            height: `${height}px`,
-          }}
+          className="w-full h-full object-cover"
+          style={{ transform: 'scaleX(-1)' }}
         />
         <canvas
           ref={canvasRef}
-          className="absolute top-0 left-0 rounded-lg"
-          style={{
-            transform: 'scaleX(-1)', // Mirror the canvas to match video
-            width: `${width}px`,
-            height: `${height}px`,
-          }}
           width={width}
           height={height}
+          className="absolute inset-0 w-full h-full pointer-events-none"
+          style={{ transform: 'scaleX(-1)' }}
         />
+
+        {/* Modern Status Indicator */}
+        <div className="absolute top-3 right-3 flex items-center space-x-2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10">
+          <div className={`w-2.5 h-2.5 rounded-full ${aiStatus === 'ready' ? 'bg-green-500 shadow-[0_0_10px_#22c55e]' : aiStatus === 'error' ? 'bg-red-500' : 'bg-yellow-500 animate-pulse'}`} />
+          <span className="text-[11px] font-bold text-gray-200 uppercase tracking-tight">{diagInfo}</span>
+        </div>
+
         {isDetecting && (
-          <div className="absolute top-2 left-2 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold shadow-md">
-            Detecting Body
+          <div className="absolute top-3 left-3 bg-red-600 text-white px-3 py-1 rounded-lg text-[10px] font-black tracking-widest uppercase animate-pulse">
+            Recording
           </div>
         )}
       </div>
 
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+        <div className="bg-red-900/20 border border-red-500/50 text-red-200 px-4 py-3 rounded-xl text-xs w-full text-center">
           {error}
         </div>
       )}
 
-      <div className="flex gap-4">
+      <div className="flex space-x-4 w-full justify-center">
         <button
-          onClick={startDetection}
-          disabled={!enableDetection || isDetecting}
-          className={`px-6 py-3 rounded-lg font-semibold transition-colors ${!enableDetection || isDetecting
-            ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
-            : 'bg-green-600 text-white hover:bg-green-700 shadow-lg shadow-green-900/20'
-            }`}
+          onClick={() => setIsDetecting(true)}
+          disabled={isDetecting || aiStatus !== 'ready'}
+          className={`flex-1 max-w-[200px] py-4 rounded-xl font-black uppercase tracking-widest text-xs transition-all ${isDetecting || aiStatus !== 'ready' ? 'bg-gray-800 text-gray-500' : 'bg-green-600 text-white hover:bg-green-500 hover:scale-105 active:scale-95 shadow-lg shadow-green-900/40'}`}
         >
-          Start Body Detection
+          {aiStatus === 'loading' ? 'Loading AI...' : 'Start Tracking'}
         </button>
         <button
-          onClick={stopDetection}
+          onClick={() => {
+            setIsDetecting(false)
+            canvasRef.current?.getContext('2d')?.clearRect(0, 0, width, height)
+          }}
           disabled={!isDetecting}
-          className={`px-6 py-3 rounded-lg font-semibold transition-colors ${!isDetecting
-            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            : 'bg-red-600 text-white hover:bg-red-700'
-            }`}
+          className="flex-1 max-w-[120px] py-4 rounded-xl font-black uppercase tracking-widest text-xs bg-red-600 text-white disabled:bg-gray-800 disabled:text-gray-500 transition-all hover:bg-red-500 hover:scale-105 active:scale-95 shadow-lg shadow-red-900/40"
         >
-          Stop Detection
+          Stop
         </button>
       </div>
 
-      <div className="text-sm text-gray-600 text-center max-w-md">
-        <p>
-          {enableDetection
-            ? 'Body detection is enabled. Click "Start Body Detection" to begin tracking your body pose.'
-            : 'Body detection is currently disabled.'}
-        </p>
-        {isDetecting && (
-          <p className="mt-2 text-green-600 font-semibold">
-            ✓ Actively detecting body keypoints and pose
-          </p>
-        )}
-      </div>
+      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-tighter">
+        Ensure your full body is visible for accurate tracking
+      </p>
     </div>
   )
 }
-

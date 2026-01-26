@@ -2,13 +2,21 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { getUser, updateUser, User } from '../lib/auth'
+import { getUser, updateUser, User, updateEmail, updatePassword } from '../lib/auth'
 
 export default function SettingsPage() {
     const router = useRouter()
     const [user, setUser] = useState<User | null>(null)
     const [loading, setLoading] = useState(true)
     const [message, setMessage] = useState('')
+    const [error, setError] = useState('')
+
+    // Account Form States
+    const [showEmailForm, setShowEmailForm] = useState(false)
+    const [showPasswordForm, setShowPasswordForm] = useState(false)
+    const [newEmail, setNewEmail] = useState('')
+    const [newPassword, setNewPassword] = useState('')
+    const [confirmPassword, setConfirmPassword] = useState('')
 
     useEffect(() => {
         const userData = getUser()
@@ -48,6 +56,51 @@ export default function SettingsPage() {
         setLoading(false)
     }
 
+    const onUpdateEmail = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setError('')
+        setMessage('')
+        setLoading(true)
+
+        const result = await updateEmail(newEmail)
+        if (result.error) {
+            setError(result.error.message)
+        } else {
+            setMessage('Confirmation email sent to both old and new addresses. Please check your inbox.')
+            setShowEmailForm(false)
+            setNewEmail('')
+        }
+        setLoading(false)
+    }
+
+    const onUpdatePassword = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setError('')
+        setMessage('')
+
+        if (newPassword !== confirmPassword) {
+            setError('Passwords do not match')
+            return
+        }
+
+        if (newPassword.length < 6) {
+            setError('Password must be at least 6 characters')
+            return
+        }
+
+        setLoading(true)
+        const result = await updatePassword(newPassword)
+        if (result.error) {
+            setError(result.error.message)
+        } else {
+            setMessage('Password updated successfully!')
+            setShowPasswordForm(false)
+            setNewPassword('')
+            setConfirmPassword('')
+        }
+        setLoading(false)
+    }
+
     if (loading) return <div className="min-h-screen bg-gray-950 flex items-center justify-center text-white">Loading...</div>
 
     const currentTheme = user?.settings?.theme || 'dark'
@@ -73,6 +126,12 @@ export default function SettingsPage() {
                     {message && (
                         <div className="bg-green-600/10 text-green-400 p-4 rounded-xl border border-green-600/20 text-center mb-8 animate-in fade-in zoom-in">
                             {message}
+                        </div>
+                    )}
+
+                    {error && (
+                        <div className="bg-red-600/10 text-red-500 p-4 rounded-xl border border-red-600/20 text-center mb-8 animate-in fade-in zoom-in">
+                            {error}
                         </div>
                     )}
 
@@ -141,6 +200,119 @@ export default function SettingsPage() {
                                         </div>
                                     </button>
                                 ))}
+                            </div>
+                        </section>
+
+                        {/* Account & Security Section */}
+                        <section>
+                            <h2 className={`text-xl font-bold mb-8 uppercase tracking-[0.2em] ${currentTheme === 'light' ? 'text-gray-400' : 'text-gray-500'}`}>Account & Security</h2>
+                            <div className="space-y-6">
+                                {/* Email Update */}
+                                <div className={`p-8 rounded-[32px] border-2 transition-all duration-300 ${currentTheme === 'light' ? 'border-gray-100 bg-gray-50' : 'border-[#1a1a1e] bg-[#14141a]'}`}>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div>
+                                            <p className={`text-lg font-black ${currentTheme === 'light' ? 'text-gray-900' : 'text-white'}`}>Email Address</p>
+                                            <p className="text-sm text-gray-500 font-medium">Your current email is {user?.email}</p>
+                                        </div>
+                                        <button
+                                            onClick={() => setShowEmailForm(!showEmailForm)}
+                                            className="bg-[#cc2d2d] hover:bg-[#b02424] text-white px-6 py-2 rounded-xl font-bold transition-all shadow-lg text-sm"
+                                        >
+                                            {showEmailForm ? 'Cancel' : 'Update Email'}
+                                        </button>
+                                    </div>
+                                    {showEmailForm && (
+                                        <form onSubmit={onUpdateEmail} className="mt-6 space-y-4 animate-in slide-in-from-top-4 duration-300">
+                                            <input
+                                                type="email"
+                                                required
+                                                placeholder="New Email Address"
+                                                value={newEmail}
+                                                onChange={(e) => setNewEmail(e.target.value)}
+                                                className={`w-full px-5 py-3 rounded-xl border font-medium ${currentTheme === 'light' ? 'bg-white border-gray-200 text-gray-900' : 'bg-[#0a0a0c] border-gray-800 text-white'}`}
+                                            />
+                                            <button
+                                                type="submit"
+                                                className="w-full bg-white text-black hover:bg-gray-200 py-3 rounded-xl font-bold transition-all"
+                                            >
+                                                Save New Email
+                                            </button>
+                                        </form>
+                                    )}
+                                </div>
+
+                                {/* Password Update */}
+                                <div className={`p-8 rounded-[32px] border-2 transition-all duration-300 ${currentTheme === 'light' ? 'border-gray-100 bg-gray-50' : 'border-[#1a1a1e] bg-[#14141a]'}`}>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div>
+                                            <p className={`text-lg font-black ${currentTheme === 'light' ? 'text-gray-900' : 'text-white'}`}>Password</p>
+                                            <p className="text-sm text-gray-500 font-medium">Update your account security</p>
+                                        </div>
+                                        <button
+                                            onClick={() => setShowPasswordForm(!showPasswordForm)}
+                                            className="bg-[#cc2d2d] hover:bg-[#b02424] text-white px-6 py-2 rounded-xl font-bold transition-all shadow-lg text-sm"
+                                        >
+                                            {showPasswordForm ? 'Cancel' : 'Update Password'}
+                                        </button>
+                                    </div>
+                                    {showPasswordForm && (
+                                        <form onSubmit={onUpdatePassword} className="mt-6 space-y-4 animate-in slide-in-from-top-4 duration-300">
+                                            <input
+                                                type="password"
+                                                required
+                                                placeholder="New Password"
+                                                value={newPassword}
+                                                onChange={(e) => setNewPassword(e.target.value)}
+                                                className={`w-full px-5 py-3 rounded-xl border font-medium ${currentTheme === 'light' ? 'bg-white border-gray-200 text-gray-900' : 'bg-[#0a0a0c] border-gray-800 text-white'}`}
+                                            />
+                                            <input
+                                                type="password"
+                                                required
+                                                placeholder="Confirm New Password"
+                                                value={confirmPassword}
+                                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                                className={`w-full px-5 py-3 rounded-xl border font-medium ${currentTheme === 'light' ? 'bg-white border-gray-200 text-gray-900' : 'bg-[#0a0a0c] border-gray-800 text-white'}`}
+                                            />
+                                            <button
+                                                type="submit"
+                                                className="w-full bg-white text-black hover:bg-gray-200 py-3 rounded-xl font-bold transition-all"
+                                            >
+                                                Save New Password
+                                            </button>
+                                        </form>
+                                    )}
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Subscription Section */}
+                        <section>
+                            <h2 className={`text-xl font-bold mb-8 uppercase tracking-[0.2em] ${currentTheme === 'light' ? 'text-gray-400' : 'text-gray-500'}`}>Billing & Subscription</h2>
+                            <div className={`p-8 rounded-[32px] border-4 border-[#cc2d2d] bg-gradient-to-br from-[#cc2d2d]/10 to-transparent transition-all duration-300`}>
+                                <div className="flex items-center justify-between gap-6 flex-wrap md:flex-nowrap">
+                                    <div>
+                                        <div className="bg-[#cc2d2d] text-white text-[10px] font-black tracking-widest px-3 py-1 rounded-full w-fit mb-3">CURRENT PLAN</div>
+                                        <h3 className={`text-2xl font-black mb-2 ${currentTheme === 'light' ? 'text-gray-900' : 'text-white'}`}>Gimmify Free</h3>
+                                        <p className="text-gray-500 font-medium">Get 24/7 AI coaching with basic motion analysis.</p>
+                                    </div>
+                                    <button
+                                        onClick={() => setMessage('Subscription Management Coming Soon!')}
+                                        className="bg-white text-black hover:bg-gray-200 px-8 py-4 rounded-2xl font-black transition-all shadow-xl whitespace-nowrap"
+                                    >
+                                        Upgrade to Pro
+                                    </button>
+                                </div>
+                                <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-red-900/20 pt-8">
+                                    <div className="flex items-center gap-3 text-sm font-bold text-gray-400">
+                                        <span className="text-red-500 text-lg">✓</span> AI Pose Feedback
+                                    </div>
+                                    <div className="flex items-center gap-3 text-sm font-bold text-gray-400">
+                                        <span className="text-red-500 text-lg">✓</span> 3 Workouts/Week
+                                    </div>
+                                    <div className="flex items-center gap-3 text-sm font-bold text-gray-400 opacity-50">
+                                        <span className="text-gray-600 text-lg">×</span> Personalized AI Plans
+                                    </div>
+                                </div>
                             </div>
                         </section>
 
