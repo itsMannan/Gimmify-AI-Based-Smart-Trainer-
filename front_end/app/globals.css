@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 17, 24, 39;
+  --background-end-rgb: 3, 7, 18;
+  --accent-red: 220, 38, 38;
+  --accent-dark: 17, 24, 39;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      rgb(var(--background-start-rgb)),
+      rgb(var(--background-end-rgb))
+    );
+  min-height: 100vh;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .gradient-red-black {
+    background: linear-gradient(135deg, #dc2626 0%, #111827 100%);
+  }
+  
+  .gradient-black-red {
+    background: linear-gradient(135deg, #111827 0%, #dc2626 100%);
+  }
+}
+
+
+
+
+
+
+
+

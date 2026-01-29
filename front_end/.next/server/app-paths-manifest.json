@@ -1,0 +1,5 @@
+{
+  "/onboarding/preferences/page": "app/onboarding/preferences/page.js",
+  "/page": "app/page.js",
+  "/onboarding/page": "app/onboarding/page.js"
+}
