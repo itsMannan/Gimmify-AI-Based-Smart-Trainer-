@@ -1,5 +1,7 @@
 {
-  "/onboarding/preferences/page": "app/onboarding/preferences/page.js",
   "/page": "app/page.js",
-  "/onboarding/page": "app/onboarding/page.js"
+  "/onboarding/preferences/page": "app/onboarding/preferences/page.js",
+  "/profile/page": "app/profile/page.js",
+  "/onboarding/page": "app/onboarding/page.js",
+  "/auth/page": "app/auth/page.js"
 }

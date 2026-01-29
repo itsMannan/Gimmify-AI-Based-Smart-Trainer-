@@ -26,9 +26,9 @@ export default function OnboardingPreferencesPage() {
             // Sync user to localStorage (handles port changes)
             const syncedUser = await import('../../lib/auth').then(mod => mod.syncUserSession())
 
-            if (syncedUser?.onboardingCompleted) {
-                router.push('/')
-            }
+            // if (syncedUser?.onboardingCompleted) {
+            //     router.push('/')
+            // }
         }
         checkSession()
     }, [router])
