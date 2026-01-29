@@ -1,0 +1,1 @@
+self.__REACT_LOADABLE_MANIFEST="{\"app/onboarding/page.tsx -> ../lib/auth\":{\"id\":\"app/onboarding/page.tsx -> ../lib/auth\",\"files\":[]},\"app/onboarding/preferences/page.tsx -> ../../lib/auth\":{\"id\":\"app/onboarding/preferences/page.tsx -> ../../lib/auth\",\"files\":[]}}"
