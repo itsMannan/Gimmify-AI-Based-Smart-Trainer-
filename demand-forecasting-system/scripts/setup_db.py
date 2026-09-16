@@ -17,8 +17,8 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.config import get_settings  # noqa: E402
-from src.logger import configure_logging, get_logger  # noqa: E402
+from src.config import get_settings
+from src.logger import configure_logging, get_logger
 
 logger = get_logger(__name__)
 

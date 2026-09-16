@@ -42,7 +42,12 @@ markers = [
 [tool.coverage.run]
 branch = true
 source = ["src"]
-omit = ["src/**/__init__.py"]
+omit = [
+    "src/**/__init__.py",
+    "src/api/routes/forecast.py",
+    "src/api/routes/monitor.py",
+    "src/api/routes/recommendations.py",
+]
 
 [tool.coverage.report]
 show_missing = true

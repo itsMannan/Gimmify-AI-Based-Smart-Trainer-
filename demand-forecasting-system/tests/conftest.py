@@ -22,8 +22,8 @@ os.environ.setdefault("REDIS_HOST", "localhost")
 os.environ.setdefault("API_CORS_ORIGINS", "http://localhost:8000")
 os.environ.setdefault("PROMETHEUS_ENABLED", "false")
 
-from src.config import clear_settings_cache  # noqa: E402
-from src.logger import reset_logging  # noqa: E402
+from src.config import clear_settings_cache
+from src.logger import reset_logging
 
 
 @pytest.fixture(autouse=True)

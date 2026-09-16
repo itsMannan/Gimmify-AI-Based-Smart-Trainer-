@@ -26,7 +26,7 @@ def test_get_project_root_returns_existing_directory() -> None:
     root = get_project_root()
     assert root.exists()
     assert (root / "src").is_dir()
-    assert PROJECT_ROOT == root
+    assert root == PROJECT_ROOT
 
 
 def test_settings_defaults_are_safe_for_tests(monkeypatch: pytest.MonkeyPatch) -> None:

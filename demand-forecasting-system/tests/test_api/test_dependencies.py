@@ -21,9 +21,11 @@ def test_provide_settings_returns_settings() -> None:
 
 def test_provide_settings_maps_failures_to_http_500() -> None:
     """A settings load failure becomes an HTTP 500."""
-    with patch("src.api.dependencies.get_settings", side_effect=RuntimeError("boom")):
-        with pytest.raises(HTTPException) as exc_info:
-            dependencies.provide_settings()
+    with (
+        patch("src.api.dependencies.get_settings", side_effect=RuntimeError("boom")),
+        pytest.raises(HTTPException) as exc_info,
+    ):
+        dependencies.provide_settings()
     assert exc_info.value.status_code == 500
 
 

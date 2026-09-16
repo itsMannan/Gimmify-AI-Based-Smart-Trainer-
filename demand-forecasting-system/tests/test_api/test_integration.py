@@ -4,16 +4,15 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from src.api.main import create_app
+from src.api.main import app
 
 
 def test_create_app_returns_fastapi_instance() -> None:
-    """Application factory produces an app with the health route registered."""
-    app = create_app()
-    routes = {getattr(route, "path", "") for route in app.routes}
-    assert "/health" in routes
-    assert "/ready" in routes
-    assert "/live" in routes
+    """The module app exposes health routes in OpenAPI."""
+    paths = set(app.openapi().get("paths", {}))
+    assert "/health" in paths
+    assert "/ready" in paths
+    assert "/live" in paths
 
 
 def test_openapi_available_outside_production(client: TestClient) -> None:
