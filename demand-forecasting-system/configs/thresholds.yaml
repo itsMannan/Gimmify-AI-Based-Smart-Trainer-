@@ -1,0 +1,63 @@
+data_quality:
+  max_null_fraction: 0.05
+  max_duplicate_fraction: 0.01
+  max_negative_sales: 0
+  min_price: 0.01
+  max_price: 10000.0
+  min_inventory: 0
+  outlier_zscore: 4.0
+  required_columns:
+    - Date
+    - Store ID
+    - Product ID
+    - Category
+    - Region
+    - Inventory Level
+    - Units Sold
+    - Units Ordered
+    - Demand Forecast
+    - Price
+    - Discount
+    - Weather Condition
+    - Holiday/Promotion
+    - Competitor Pricing
+    - Seasonality
+
+drift:
+  psi_warning: 0.1
+  psi_critical: 0.2
+  kl_warning: 0.05
+  kl_critical: 0.1
+  ks_pvalue_warning: 0.05
+  min_reference_rows: 1000
+  min_current_rows: 200
+
+model_performance:
+  mae_warning: 8.0
+  mae_critical: 15.0
+  rmse_warning: 12.0
+  rmse_critical: 22.0
+  mape_warning: 0.18
+  mape_critical: 0.30
+  r2_warning: 0.55
+  r2_critical: 0.35
+
+inventory:
+  stockout_risk_warning: 0.10
+  stockout_risk_critical: 0.20
+  overstock_days_warning: 45
+  overstock_days_critical: 90
+  min_reorder_quantity: 1
+
+api:
+  latency_p95_ms_warning: 80
+  latency_p95_ms_critical: 100
+  error_rate_warning: 0.02
+  error_rate_critical: 0.05
+  cache_hit_rate_warning: 0.60
+
+alerting:
+  cooldown_seconds: 300
+  channels:
+    - logs
+    - webhook

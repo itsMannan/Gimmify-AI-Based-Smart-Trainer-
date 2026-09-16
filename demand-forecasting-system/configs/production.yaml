@@ -1,0 +1,51 @@
+app:
+  name: demand-forecasting-system
+  debug: false
+  log_level: INFO
+
+api:
+  host: 0.0.0.0
+  port: 8000
+  workers: 4
+  reload: false
+  cors_origins: []
+  rate_limit_per_minute: 300
+  cache_ttl_seconds: 120
+  request_timeout_seconds: 15
+
+database:
+  pool_size: 20
+  max_overflow: 40
+  echo: false
+
+redis:
+  db: 0
+  cache_ttl_seconds: 120
+
+mlflow:
+  experiment_name: demand-forecasting-prod
+  tracking_uri: ${MLFLOW_TRACKING_URI}
+
+features:
+  lag_days: [1, 7, 14, 28, 56]
+  rolling_windows: [7, 14, 28, 56, 84]
+  forecast_horizon_days: 14
+  encode_categoricals:
+    - store_id
+    - product_id
+    - category
+    - region
+    - weather_condition
+    - seasonality
+
+models:
+  default_algorithm: ensemble
+  test_size_days: 28
+  random_state: 42
+  cv_folds: 5
+
+inventory:
+  service_level: 0.97
+  lead_time_days: 7
+  holding_cost_rate: 0.22
+  stockout_cost_multiplier: 3.0

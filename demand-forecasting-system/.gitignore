@@ -1,0 +1,95 @@
+# Byte-compiled / optimized
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+.eggs/
+dist/
+build/
+pip-wheel-metadata/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+secrets.yaml
+
+# Editors / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Tests / type checkers / linters
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.hypothesis/
+coverage.xml
+
+# Logs and local runtime
+logs/
+*.log
+
+# Data artifacts (keep directory placeholders via .gitkeep)
+data/processed/*
+data/features/*
+data/raw/*
+!data/processed/.gitkeep
+!data/features/.gitkeep
+!data/raw/.gitkeep
+*.parquet
+*.feather
+*.h5
+*.hdf5
+
+# Model / MLflow artifacts
+models/artifacts/*
+!models/artifacts/.gitkeep
+mlruns/
+mlartifacts/
+mlflow.db
+catboost_info/
+
+# Jupyter
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/
+
+# Docker / compose overrides
+docker-compose.override.yml
+
+# Airflow local
+airflow/logs/
+airflow.cfg
+airflow.db
+unittests.cfg
+
+# Caches
+.cache/
+.cmdstan/
+stan_model/
+
+# Coverage / profiling
+*.prof
+prof/
+
+# Local notebooks outputs
+notebooks/**/outputs/

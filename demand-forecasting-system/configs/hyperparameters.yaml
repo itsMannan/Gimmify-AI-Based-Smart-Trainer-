@@ -1,0 +1,56 @@
+xgboost:
+  n_estimators: 600
+  max_depth: 8
+  learning_rate: 0.05
+  subsample: 0.8
+  colsample_bytree: 0.8
+  min_child_weight: 5
+  reg_lambda: 1.0
+  reg_alpha: 0.1
+  objective: reg:squarederror
+  tree_method: hist
+  n_jobs: -1
+  early_stopping_rounds: 50
+
+lightgbm:
+  n_estimators: 800
+  num_leaves: 63
+  max_depth: -1
+  learning_rate: 0.05
+  subsample: 0.8
+  colsample_bytree: 0.8
+  min_child_samples: 40
+  reg_lambda: 1.0
+  reg_alpha: 0.1
+  objective: regression
+  metric: rmse
+  n_jobs: -1
+  early_stopping_rounds: 50
+
+prophet:
+  yearly_seasonality: true
+  weekly_seasonality: true
+  daily_seasonality: false
+  seasonality_mode: multiplicative
+  changepoint_prior_scale: 0.05
+  seasonality_prior_scale: 10.0
+  holidays_prior_scale: 10.0
+  interval_width: 0.95
+
+ensemble:
+  method: weighted_average
+  weights:
+    xgboost: 0.4
+    lightgbm: 0.4
+    prophet: 0.2
+  fallback_order:
+    - lightgbm
+    - xgboost
+    - prophet
+
+optuna:
+  n_trials: 40
+  timeout_seconds: 3600
+  direction: minimize
+  metric: rmse
+  sampler: tpe
