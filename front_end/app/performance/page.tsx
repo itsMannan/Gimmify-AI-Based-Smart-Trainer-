@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { getUser, updateUser, User } from '../lib/auth'
 import dynamic from 'next/dynamic'
 import Header from '../components/Header'
+import ProtectedPage from '../components/ProtectedPage'
 
 // Dynamically import Recharts to avoid SSR issues
 const BarChart = dynamic(() => import('recharts').then(mod => mod.BarChart), { ssr: false })
@@ -24,7 +25,7 @@ const generateMockData = () => [
     { month: 'Jun', weight: 75, height: 175, workoutCount: 25 },
 ]
 
-export default function PerformancePage() {
+function PerformancePage() {
     const router = useRouter()
     const [user, setUser] = useState<User | null>(null)
     const [loading, setLoading] = useState(true)
@@ -281,5 +282,13 @@ export default function PerformancePage() {
                 </div>
             </div>
         </main>
+    )
+}
+
+export default function PerformanceRoute() {
+    return (
+        <ProtectedPage>
+            <PerformancePage />
+        </ProtectedPage>
     )
 }

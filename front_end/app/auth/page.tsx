@@ -21,6 +21,11 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
+    const mode = new URLSearchParams(window.location.search).get('mode')
+    if (mode === 'signup') setIsSignUp(true)
+  }, [])
+
+  useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state change:', event, session?.user?.id)
 
@@ -68,7 +73,7 @@ export default function AuthPage() {
             })
 
             if (profile?.onboardingCompleted) {
-              router.push('/')
+              router.push('/dashboard')
             } else {
               router.push('/onboarding')
             }
@@ -76,7 +81,7 @@ export default function AuthPage() {
           }
 
           if (profile.onboardingCompleted) {
-            router.push('/')
+            router.push('/dashboard')
           } else {
             router.push('/onboarding')
           }
@@ -189,7 +194,7 @@ export default function AuthPage() {
 
   const handleSocialLogin = async (provider: 'facebook' | 'google' | 'apple') => {
     const options: { redirectTo: string; queryParams?: any } = {
-      redirectTo: `${window.location.origin}/onboarding`
+      redirectTo: `${window.location.origin}/auth`
     }
 
     if (provider === 'google') {

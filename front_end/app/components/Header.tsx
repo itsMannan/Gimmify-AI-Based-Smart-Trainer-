@@ -4,10 +4,12 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getUser, clearUser, syncUserSession, User } from '../lib/auth'
+import { supabase } from '../lib/supabase'
 
 export default function Header() {
     const router = useRouter()
     const [user, setUser] = useState<User | null>(null)
+    const [signedIn, setSignedIn] = useState(false)
     const [theme, setTheme] = useState<'dark' | 'light'>('dark')
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const dropdownRef = useRef<HTMLDivElement>(null)
@@ -19,7 +21,9 @@ export default function Header() {
                 // Try to sync from Supabase if localStorage is empty (e.g. new port)
                 userData = await syncUserSession()
             }
+            const { data } = await supabase.auth.getSession()
             setUser(userData)
+            setSignedIn(Boolean(userData) || Boolean(data.session))
             if (userData?.settings?.theme) {
                 setTheme(userData.settings.theme)
             }
@@ -29,8 +33,10 @@ export default function Header() {
 
         // Listen for user updates
         const handleUserUpdate = (event: any) => {
-            const newUser = event.detail
+            const newUser = event.detail as User | null
             setUser(newUser)
+            if (!newUser) setSignedIn(false)
+            if (newUser) setSignedIn(true)
             if (newUser?.settings?.theme) {
                 setTheme(newUser.settings.theme)
             }
@@ -58,10 +64,22 @@ export default function Header() {
 
     return (
         <header className={`${theme === 'light' ? 'bg-white border-gray-200' : 'bg-[#0a0a0c] border-[#1a1a1e]'} border-b sticky top-0 z-50 transition-colors duration-300`}>
-            <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-                <Link href="/" className={`text-2xl font-bold tracking-tight ${theme === 'light' ? 'text-gray-900 hover:text-red-600' : 'text-white hover:text-red-500'} transition-colors`}>
-                    Gimmify
-                </Link>
+            <div className="container mx-auto px-6 py-4 flex justify-between items-center gap-4">
+                <div className="flex items-center gap-3 sm:gap-6 min-w-0">
+                    <Link href="/" className={`text-2xl font-bold tracking-tight ${theme === 'light' ? 'text-gray-900 hover:text-red-600' : 'text-white hover:text-red-500'} transition-colors`}>
+                        Gimmify
+                    </Link>
+                    <nav aria-label="Primary" className="flex items-center gap-4 text-sm font-semibold">
+                        <Link href="/learn" className={theme === 'light' ? 'text-gray-700 hover:text-red-600' : 'text-gray-300 hover:text-white'}>
+                            Learn
+                        </Link>
+                        {signedIn && (
+                            <Link href="/dashboard" className={theme === 'light' ? 'text-gray-700 hover:text-red-600' : 'text-gray-300 hover:text-white'}>
+                                Dashboard
+                            </Link>
+                        )}
+                    </nav>
+                </div>
 
                 <div className="flex items-center gap-4">
                     {user ? (
@@ -70,7 +88,7 @@ export default function Header() {
                                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                                 className="flex items-center gap-3 focus:outline-none"
                             >
-                                <div className="text-right mr-3">
+                                <div className="text-right mr-3 hidden sm:block">
                                     <p className={`text-sm font-semibold ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>{user.firstName} {user.lastName}</p>
                                     <p className={`text-xs ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>{user.email}</p>
                                 </div>
@@ -121,6 +139,13 @@ export default function Header() {
                                 </div>
                             )}
                         </div>
+                    ) : signedIn ? (
+                        <Link
+                            href="/dashboard"
+                            className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg transition-colors font-semibold"
+                        >
+                            Dashboard
+                        </Link>
                     ) : (
                         <Link
                             href="/auth"
