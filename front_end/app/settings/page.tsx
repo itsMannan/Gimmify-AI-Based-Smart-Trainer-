@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { getUser, updateUser, User, updateEmail, updatePassword } from '../lib/auth'
+import ProtectedPage from '../components/ProtectedPage'
 
-export default function SettingsPage() {
+function SettingsPage() {
     const router = useRouter()
     const [user, setUser] = useState<User | null>(null)
     const [loading, setLoading] = useState(true)
@@ -116,7 +117,7 @@ export default function SettingsPage() {
                             <p className="text-gray-500 font-medium">Manage your app preferences and permissions</p>
                         </div>
                         <button
-                            onClick={() => router.push('/')}
+                            onClick={() => router.push('/dashboard')}
                             className={`${currentTheme === 'light' ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'bg-[#1a1a1e] text-white hover:bg-[#25252b]'} px-6 py-3 rounded-2xl transition-all font-bold flex items-center gap-2 shadow-lg`}
                         >
                             <span>←</span> Dashboard
@@ -323,7 +324,7 @@ export default function SettingsPage() {
                                     setMessage('Preferences Saved Successfully!')
                                     setTimeout(() => {
                                         setMessage('')
-                                        router.push('/')
+                                        router.push('/dashboard')
                                     }, 1500)
                                 }}
                                 className="w-full bg-[#cc2d2d] hover:bg-[#b02424] text-white font-black py-6 rounded-3xl transition-all shadow-xl hover:shadow-[#cc2d2d]/30 active:scale-[0.98] text-xl"
@@ -335,5 +336,13 @@ export default function SettingsPage() {
                 </div>
             </div>
         </div>
+    )
+}
+
+export default function SettingsRoute() {
+    return (
+        <ProtectedPage>
+            <SettingsPage />
+        </ProtectedPage>
     )
 }

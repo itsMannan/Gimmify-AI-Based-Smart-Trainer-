@@ -4,8 +4,9 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { getUser, updateUser, User } from '../lib/auth'
 import Header from '../components/Header'
+import ProtectedPage from '../components/ProtectedPage'
 
-export default function ProfilePage() {
+function ProfilePage() {
     const router = useRouter()
     const [user, setUser] = useState<User | null>(null)
     const [loading, setLoading] = useState(true)
@@ -161,7 +162,7 @@ export default function ProfilePage() {
                                 <p className="text-gray-500 font-medium">Update your profile details and preferences</p>
                             </div>
                             <button
-                                onClick={() => router.push('/')}
+                                onClick={() => router.push('/dashboard')}
                                 className={`px-6 py-2 rounded-xl transition-colors font-bold ${theme === 'light' ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
                             >
                                 Back to Dashboard
@@ -260,7 +261,7 @@ export default function ProfilePage() {
                             <div className="flex items-center justify-end gap-6 pt-4">
                                 <button
                                     type="button"
-                                    onClick={() => router.push('/')}
+                                    onClick={() => router.push('/dashboard')}
                                     className="text-gray-400 hover:text-white font-medium transition-colors"
                                 >
                                     Cancel
@@ -277,5 +278,13 @@ export default function ProfilePage() {
                 </div>
             </div>
         </main>
+    )
+}
+
+export default function ProfileRoute() {
+    return (
+        <ProtectedPage>
+            <ProfilePage />
+        </ProtectedPage>
     )
 }
